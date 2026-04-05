@@ -217,8 +217,8 @@ const emit = defineEmits<{
 
 .knobs {
   display: flex;
-  gap: 16px;
-  justify-content: space-between;
+  gap: 12px;
+  justify-content: center;
   align-items: flex-start;
 }
 
