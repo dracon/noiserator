@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps<{
   modelValue: number
@@ -33,6 +33,33 @@ const displayValue = computed(() => {
   return props.modelValue.toFixed(dec)
 })
 
+// Inline edit
+const editing = ref(false)
+const editText = ref('')
+const inputEl = ref<HTMLInputElement | null>(null)
+let cancelled = false
+
+function startEdit() {
+  editing.value = true
+  cancelled = false
+  editText.value = displayValue.value
+  nextTick(() => inputEl.value?.select())
+}
+
+function commitEdit() {
+  if (cancelled) return
+  editing.value = false
+  const n = parseFloat(editText.value)
+  if (!isNaN(n)) {
+    emit('update:modelValue', Math.min(props.max, Math.max(props.min, n)))
+  }
+}
+
+function cancelEdit() {
+  cancelled = true
+  editing.value = false
+}
+
 // Drag logic
 const dragging = ref(false)
 let startY = 0
@@ -40,6 +67,10 @@ let startValue = 0
 const sensitivity = 0.5 // px per unit percentage
 
 function onPointerDown(e: PointerEvent) {
+  if (editing.value) return
+  // Don't start drag when clicking on the value readout
+  const target = e.target as HTMLElement
+  if (target.closest('.knob-value') || target.closest('.knob-input-wrap')) return
   dragging.value = true
   startY = e.clientY
   startValue = props.modelValue
@@ -169,7 +200,20 @@ const dotPos = computed(() => polarToXY(angle.value, r.value - 8))
       </defs>
     </svg>
     <div class="knob-label">{{ label }}</div>
-    <div class="knob-value">{{ displayValue }}<span v-if="unit" class="knob-unit">{{ unit }}</span></div>
+    <div v-if="editing" class="knob-input-wrap">
+      <input
+        ref="inputEl"
+        v-model="editText"
+        class="knob-input"
+        type="text"
+        inputmode="decimal"
+        @keydown.enter="commitEdit"
+        @keydown.escape="cancelEdit"
+        @blur="commitEdit"
+      />
+      <span v-if="unit" class="knob-unit">{{ unit }}</span>
+    </div>
+    <div v-else class="knob-value" @click.stop="startEdit">{{ displayValue }}<span v-if="unit" class="knob-unit">{{ unit }}</span></div>
   </div>
 </template>
 
@@ -199,6 +243,33 @@ const dotPos = computed(() => polarToXY(angle.value, r.value - 8))
   color: var(--text);
   min-width: 50px;
   text-align: center;
+  cursor: text;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.knob-value:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.knob-input-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.knob-input {
+  width: 48px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--accent, #7c5cbf);
+  border-radius: 4px;
+  padding: 1px 4px;
+  text-align: center;
+  outline: none;
 }
 
 .knob-unit {
