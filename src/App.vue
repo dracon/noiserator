@@ -2,8 +2,9 @@
 import { ref } from 'vue'
 import OscillatorView from './views/OscillatorView.vue'
 import NotchView from './views/NotchView.vue'
+import NoiseView from './views/NoiseView.vue'
 
-type Tab = 'oscillator' | 'notch'
+type Tab = 'oscillator' | 'notch' | 'noise'
 const activeTab = ref<Tab>('oscillator')
 </script>
 
@@ -34,12 +35,24 @@ const activeTab = ref<Tab>('oscillator')
           </svg>
           NOTCH FILTER
         </button>
+        <button
+          class="tab"
+          :class="{ active: activeTab === 'noise' }"
+          @click="activeTab = 'noise'"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M1 6 L2.5 3 L4 8 L5.5 2 L7 10 L8.5 4 L10 7 L11 5"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          NOISE
+        </button>
       </nav>
     </header>
 
     <main class="view-host">
       <OscillatorView v-if="activeTab === 'oscillator'" />
       <NotchView      v-if="activeTab === 'notch'" />
+      <NoiseView      v-if="activeTab === 'noise'" />
     </main>
   </div>
 </template>
@@ -116,8 +129,12 @@ const activeTab = ref<Tab>('oscillator')
   color: var(--accent-glow);
 }
 
-.tab.active:last-child {
+.tab.active:nth-child(2) {
   color: #e066ff;
+}
+
+.tab.active:nth-child(3) {
+  color: #4ecdc4;
 }
 
 .view-host {

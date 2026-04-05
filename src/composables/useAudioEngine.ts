@@ -12,12 +12,27 @@ export interface ChannelState {
 
 const WAVES: WaveType[] = ['sine', 'square', 'sawtooth', 'triangle']
 
+export interface BinauralState {
+  enabled: boolean
+  baseFrequency: number
+  beatFrequency: number
+  preset: string | null
+}
+
+export const BINAURAL_PRESETS: Record<string, { label: string; min: number; max: number; default: number }> = {
+  delta: { label: 'DELTA', min: 0.5, max: 4, default: 2 },
+  theta: { label: 'THETA', min: 4, max: 8, default: 6 },
+  alpha: { label: 'ALPHA', min: 8, max: 13, default: 10 },
+  beta:  { label: 'BETA',  min: 13, max: 30, default: 20 },
+}
+
 const STORAGE_KEY = 'noiserator-settings'
 
 const DEFAULT_LEFT: ChannelState = { frequency: 220, volume: 0.25, wave: 'sine', enabled: true, inverted: false }
 const DEFAULT_RIGHT: ChannelState = { frequency: 440, volume: 0.25, wave: 'sine', enabled: true, inverted: false }
+const DEFAULT_BINAURAL: BinauralState = { enabled: false, baseFrequency: 200, beatFrequency: 10, preset: null }
 
-function loadSettings(): { left: ChannelState; right: ChannelState } {
+function loadSettings(): { left: ChannelState; right: ChannelState; binaural: BinauralState } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
@@ -25,16 +40,17 @@ function loadSettings(): { left: ChannelState; right: ChannelState } {
       return {
         left: { ...DEFAULT_LEFT, ...parsed.left },
         right: { ...DEFAULT_RIGHT, ...parsed.right },
+        binaural: { ...DEFAULT_BINAURAL, ...parsed.binaural },
       }
     }
   } catch {
     // ignore corrupt storage
   }
-  return { left: { ...DEFAULT_LEFT }, right: { ...DEFAULT_RIGHT } }
+  return { left: { ...DEFAULT_LEFT }, right: { ...DEFAULT_RIGHT }, binaural: { ...DEFAULT_BINAURAL } }
 }
 
-function saveSettings(left: ChannelState, right: ChannelState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, right }))
+function saveSettings(left: ChannelState, right: ChannelState, binaural: BinauralState) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, right, binaural }))
 }
 
 export function useAudioEngine() {
@@ -53,6 +69,7 @@ export function useAudioEngine() {
   const saved = loadSettings()
   const left = ref<ChannelState>(saved.left)
   const right = ref<ChannelState>(saved.right)
+  const binaural = ref<BinauralState>(saved.binaural)
 
   function buildGraph() {
     if (!ctx) return
@@ -167,10 +184,36 @@ export function useAudioEngine() {
     if (rightPhase) rightPhase.gain.setTargetAtTime(v ? -1 : 1, ctx!.currentTime, 0.005)
   })
 
+  // Binaural mode: sync L/R frequencies from base + beat
+  watch(() => binaural.value.enabled, enabled => {
+    if (enabled) {
+      left.value.frequency = binaural.value.baseFrequency
+      right.value.frequency = binaural.value.baseFrequency + binaural.value.beatFrequency
+      // Sync volume and wave
+      right.value.volume = left.value.volume
+      right.value.wave = left.value.wave
+      left.value.enabled = true
+      right.value.enabled = true
+    }
+  })
+
+  watch(() => binaural.value.baseFrequency, base => {
+    if (!binaural.value.enabled) return
+    left.value.frequency = base
+    right.value.frequency = base + binaural.value.beatFrequency
+  })
+
+  watch(() => binaural.value.beatFrequency, beat => {
+    if (!binaural.value.enabled) return
+    right.value.frequency = binaural.value.baseFrequency + beat
+    // Clear preset if user manually adjusts beat
+    binaural.value.preset = null
+  })
+
   // Persist any state change to localStorage
-  watch([left, right], () => saveSettings(left.value, right.value), { deep: true })
+  watch([left, right, binaural], () => saveSettings(left.value, right.value, binaural.value), { deep: true })
 
   onUnmounted(stop)
 
-  return { left, right, isRunning, toggle, WAVES }
+  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS }
 }

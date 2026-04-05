@@ -88,7 +88,7 @@ test.describe('Oscillator view', () => {
   })
 
   test('shows footer hint text', async ({ page }) => {
-    await expect(page.locator('.footer')).toContainText('drag knobs up/down')
+    await expect(page.locator('.footer')).toContainText('space = power')
   })
 })
 

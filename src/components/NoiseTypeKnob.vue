@@ -1,30 +1,29 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { WaveType } from '../composables/useAudioEngine'
+import type { NoiseType } from '../composables/useNoiseEngine'
 
 const props = defineProps<{
-  modelValue: WaveType
-  waves: WaveType[]
+  modelValue: NoiseType
+  noiseTypes: NoiseType[]
   size?: number
   color?: string
   focused?: boolean
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: WaveType]
+  'update:modelValue': [value: NoiseType]
 }>()
 
 const size = computed(() => props.size ?? 80)
-const color = computed(() => props.color ?? '#7c5cbf')
+const color = computed(() => props.color ?? '#4ecdc4')
 
-const currentIndex = computed(() => props.waves.indexOf(props.modelValue))
+const currentIndex = computed(() => props.noiseTypes.indexOf(props.modelValue))
 
-// 4 positions spread over 270° arc, starting at -135°
 const MIN_ANGLE = -135
 const MAX_ANGLE = 135
 
 const angleForIndex = (i: number) =>
-  MIN_ANGLE + (i / (props.waves.length - 1)) * (MAX_ANGLE - MIN_ANGLE)
+  MIN_ANGLE + (i / (props.noiseTypes.length - 1)) * (MAX_ANGLE - MIN_ANGLE)
 
 const angle = computed(() => angleForIndex(currentIndex.value))
 
@@ -47,16 +46,15 @@ function onPointerMove(e: PointerEvent) {
   if (!dragging.value) return
   const dy = startY - e.clientY
   if (Math.abs(dy) > 5) moved = true
-  const steps = Math.round((dy / 60) * (props.waves.length - 1))
-  const idx = Math.min(props.waves.length - 1, Math.max(0, startIndex + steps))
-  emit('update:modelValue', props.waves[idx])
+  const steps = Math.round((dy / 60) * (props.noiseTypes.length - 1))
+  const idx = Math.min(props.noiseTypes.length - 1, Math.max(0, startIndex + steps))
+  emit('update:modelValue', props.noiseTypes[idx])
 }
 
 function onPointerUp() {
   if (!moved) {
-    // click: advance to next wave
-    const next = (currentIndex.value + 1) % props.waves.length
-    emit('update:modelValue', props.waves[next])
+    const next = (currentIndex.value + 1) % props.noiseTypes.length
+    emit('update:modelValue', props.noiseTypes[next])
   }
   dragging.value = false
 }
@@ -64,8 +62,8 @@ function onPointerUp() {
 function onWheel(e: WheelEvent) {
   e.preventDefault()
   const dir = e.deltaY < 0 ? 1 : -1
-  const next = (currentIndex.value + dir + props.waves.length) % props.waves.length
-  emit('update:modelValue', props.waves[next])
+  const next = (currentIndex.value + dir + props.noiseTypes.length) % props.noiseTypes.length
+  emit('update:modelValue', props.noiseTypes[next])
 }
 
 // SVG
@@ -88,19 +86,17 @@ const trackPath = computed(() => {
 const dotPos = computed(() => polarToXY(angle.value, r.value - 8))
 
 const notches = computed(() =>
-  props.waves.map((_, i) => ({
+  props.noiseTypes.map((_, i) => ({
     outer: polarToXY(angleForIndex(i), trackR.value + 5),
     inner: polarToXY(angleForIndex(i), trackR.value - 5),
     active: i === currentIndex.value,
   }))
 )
 
-// Wave display names
-const waveLabels: Record<WaveType, string> = {
-  sine: 'SINE',
-  square: 'SQR',
-  sawtooth: 'SAW',
-  triangle: 'TRI',
+const noiseLabels: Record<NoiseType, string> = {
+  white: 'WHITE',
+  pink: 'PINK',
+  brown: 'BROWN',
 }
 </script>
 
@@ -115,7 +111,6 @@ const waveLabels: Record<WaveType, string> = {
     @wheel.prevent="onWheel"
   >
     <svg :width="size" :height="size" :viewBox="`0 0 ${size} ${size}`" class="knob-svg">
-      <!-- Focus ring -->
       <circle
         v-if="focused"
         :cx="cx" :cy="cy" :r="r + 2"
@@ -124,11 +119,8 @@ const waveLabels: Record<WaveType, string> = {
         stroke-width="1.5"
         class="focus-ring"
       />
-      <!-- Outer ring -->
       <circle :cx="cx" :cy="cy" :r="r" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="2" />
-      <!-- Background track -->
       <path :d="trackPath" fill="none" stroke="#2a2a35" stroke-width="4" stroke-linecap="round" />
-      <!-- Notch marks for each wave -->
       <line
         v-for="(n, i) in notches"
         :key="i"
@@ -138,23 +130,21 @@ const waveLabels: Record<WaveType, string> = {
         stroke-width="2"
         stroke-linecap="round"
       />
-      <!-- Knob body -->
-      <circle :cx="cx" :cy="cy" :r="r - 10" fill="url(#knobGrad2)" stroke="#3a3a4a" stroke-width="1.5" />
-      <!-- Indicator dot -->
+      <circle :cx="cx" :cy="cy" :r="r - 10" fill="url(#knobGrad3)" stroke="#3a3a4a" stroke-width="1.5" />
       <circle
         :cx="dotPos.x" :cy="dotPos.y" :r="3"
         :fill="color"
         :filter="`drop-shadow(0 0 3px ${color})`"
       />
       <defs>
-        <radialGradient id="knobGrad2" cx="40%" cy="35%" r="65%">
+        <radialGradient id="knobGrad3" cx="40%" cy="35%" r="65%">
           <stop offset="0%" stop-color="#2e2e3c" />
           <stop offset="100%" stop-color="#18181f" />
         </radialGradient>
       </defs>
     </svg>
-    <div class="knob-label">WAVE</div>
-    <div class="knob-value">{{ waveLabels[modelValue] }}</div>
+    <div class="knob-label">NOISE</div>
+    <div class="knob-value">{{ noiseLabels[modelValue] }}</div>
   </div>
 </template>
 

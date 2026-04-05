@@ -10,6 +10,7 @@ const props = defineProps<{
   decimals?: number
   size?: number
   color?: string
+  focused?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -155,6 +156,15 @@ const dotPos = computed(() => polarToXY(angle.value, r.value - 8))
       :viewBox="`0 0 ${size} ${size}`"
       class="knob-svg"
     >
+      <!-- Focus ring -->
+      <circle
+        v-if="focused"
+        :cx="cx" :cy="cy" :r="r + 2"
+        fill="none"
+        :stroke="color"
+        stroke-width="1.5"
+        class="focus-ring"
+      />
       <!-- Outer glow ring -->
       <circle
         :cx="cx" :cy="cy" :r="r"
@@ -276,5 +286,14 @@ const dotPos = computed(() => polarToXY(angle.value, r.value - 8))
   font-size: 9px;
   color: var(--text-dim);
   margin-left: 2px;
+}
+
+.focus-ring {
+  animation: focus-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes focus-pulse {
+  0%   { opacity: 0.4; }
+  100% { opacity: 0.9; }
 }
 </style>

@@ -1,10 +1,70 @@
 <script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotchFilter } from '../composables/useNotchFilter'
 import type { AudioSource } from '../composables/useNotchFilter'
 import Knob from '../components/Knob.vue'
 import FrequencyChart from '../components/FrequencyChart.vue'
 
 const { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand } = useNotchFilter()
+
+// Keyboard navigation
+// Knob order: band0-freq, band0-q, band1-freq, band1-q, ...
+const focusedKnob = ref(-1)
+
+const knobCount = computed(() => bands.value.length * 2)
+
+function knobFocused(bandIndex: number, knobType: 'freq' | 'q') {
+  const base = bandIndex * 2
+  return focusedKnob.value === base + (knobType === 'freq' ? 0 : 1)
+}
+
+function adjustKnob(index: number, dir: number) {
+  const bandIdx = Math.floor(index / 2)
+  const isQ = index % 2 === 1
+  const band = bands.value[bandIdx]
+  if (!band) return
+
+  if (isQ) {
+    const range = 200 - 1
+    band.q = Math.min(200, Math.max(1, band.q + (range / 100) * dir))
+  } else {
+    const range = 20000 - 20
+    band.frequency = Math.min(20000, Math.max(20, band.frequency + (range / 100) * dir))
+  }
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (document.activeElement instanceof HTMLInputElement) return
+
+  switch (e.key) {
+    case ' ':
+      toggle()
+      e.preventDefault()
+      break
+    case 'ArrowRight':
+      focusedKnob.value = focusedKnob.value < 0 ? 0 : (focusedKnob.value + 1) % knobCount.value
+      e.preventDefault()
+      break
+    case 'ArrowLeft':
+      focusedKnob.value = focusedKnob.value <= 0 ? knobCount.value - 1 : focusedKnob.value - 1
+      e.preventDefault()
+      break
+    case 'ArrowUp':
+      if (focusedKnob.value >= 0) adjustKnob(focusedKnob.value, 1)
+      e.preventDefault()
+      break
+    case 'ArrowDown':
+      if (focusedKnob.value >= 0) adjustKnob(focusedKnob.value, -1)
+      e.preventDefault()
+      break
+    case 'Escape':
+      focusedKnob.value = -1
+      break
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 const sources: { value: AudioSource; label: string; icon: string; hint: string }[] = [
   {
@@ -112,6 +172,7 @@ const sources: { value: AudioSource; label: string; icon: string; hint: string }
             :decimals="0"
             color="#e066ff"
             :size="84"
+            :focused="knobFocused(bands.indexOf(band), 'freq')"
             @update:model-value="band.frequency = $event"
           />
           <Knob
@@ -122,6 +183,7 @@ const sources: { value: AudioSource; label: string; icon: string; hint: string }
             :decimals="1"
             color="#e066ff"
             :size="84"
+            :focused="knobFocused(bands.indexOf(band), 'q')"
             @update:model-value="band.q = $event"
           />
         </div>
@@ -138,7 +200,7 @@ const sources: { value: AudioSource; label: string; icon: string; hint: string }
     </div>
 
     <footer class="footer">
-      drag FREQ knob to target your tinnitus tone &nbsp;·&nbsp; higher Q = narrower notch
+      space = power &nbsp;·&nbsp; ←/→ select knob &nbsp;·&nbsp; ↑/↓ adjust &nbsp;·&nbsp; higher Q = narrower notch
     </footer>
   </div>
 </template>

@@ -9,6 +9,8 @@ const props = defineProps<{
   color: string
   isRunning: boolean
   waves: WaveType[]
+  freqReadonly?: boolean
+  focusedKnobs?: { freq: boolean; vol: boolean; wave: boolean }
 }>()
 
 const emit = defineEmits<{
@@ -63,17 +65,20 @@ const emit = defineEmits<{
 
     <!-- Knobs -->
     <div class="knobs">
-      <Knob
-        :model-value="channel.frequency"
-        :min="20"
-        :max="20000"
-        label="FREQ"
-        unit="Hz"
-        :decimals="0"
-        :color="color"
-        :size="84"
-        @update:model-value="emit('update:frequency', $event)"
-      />
+      <div :class="{ 'freq-readonly': freqReadonly }">
+        <Knob
+          :model-value="channel.frequency"
+          :min="20"
+          :max="20000"
+          label="FREQ"
+          unit="Hz"
+          :decimals="0"
+          :color="color"
+          :size="84"
+          :focused="focusedKnobs?.freq"
+          @update:model-value="emit('update:frequency', $event)"
+        />
+      </div>
       <Knob
         :model-value="channel.volume"
         :min="0"
@@ -82,6 +87,7 @@ const emit = defineEmits<{
         :decimals="2"
         :color="color"
         :size="84"
+        :focused="focusedKnobs?.vol"
         @update:model-value="emit('update:volume', $event)"
       />
       <WaveKnob
@@ -89,6 +95,7 @@ const emit = defineEmits<{
         :waves="waves"
         :color="color"
         :size="84"
+        :focused="focusedKnobs?.wave"
         @update:model-value="emit('update:wave', $event)"
       />
     </div>
@@ -226,5 +233,10 @@ const emit = defineEmits<{
   height: 100%;
   border-radius: 2px;
   transition: width 0.05s linear;
+}
+
+.freq-readonly {
+  pointer-events: none;
+  opacity: 0.45;
 }
 </style>
