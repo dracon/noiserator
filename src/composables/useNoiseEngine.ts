@@ -34,6 +34,7 @@ export function useNoiseEngine() {
   let gainNode: GainNode | null = null
 
   const isRunning = ref(false)
+  const analyserNode = ref<AnalyserNode | null>(null)
   const state = ref<NoiseState>(loadSettings())
 
   async function start() {
@@ -60,6 +61,11 @@ export function useNoiseEngine() {
     workletNode.connect(gainNode)
     gainNode.connect(ctx.destination)
 
+    analyserNode.value = ctx.createAnalyser()
+    analyserNode.value.fftSize = 2048
+    analyserNode.value.smoothingTimeConstant = 0.8
+    gainNode.connect(analyserNode.value)
+
     isRunning.value = true
   }
 
@@ -67,8 +73,10 @@ export function useNoiseEngine() {
     if (!isRunning.value) return
     workletNode?.disconnect()
     gainNode?.disconnect()
+    analyserNode.value?.disconnect()
     workletNode = null
     gainNode = null
+    analyserNode.value = null
     ctx?.close()
     ctx = null
     isRunning.value = false
@@ -101,5 +109,5 @@ export function useNoiseEngine() {
 
   onUnmounted(stop)
 
-  return { state, isRunning, toggle, NOISE_TYPES }
+  return { state, isRunning, toggle, NOISE_TYPES, analyserNode }
 }

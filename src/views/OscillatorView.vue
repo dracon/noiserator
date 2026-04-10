@@ -3,8 +3,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAudioEngine } from '../composables/useAudioEngine'
 import ChannelPanel from '../components/ChannelPanel.vue'
 import Knob from '../components/Knob.vue'
+import SpectrumAnalyzer from '../components/SpectrumAnalyzer.vue'
 
-const { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS } = useAudioEngine()
+const { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode } = useAudioEngine()
 
 function selectPreset(key: string) {
   const preset = BINAURAL_PRESETS[key]
@@ -204,6 +205,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         @toggle:inverted="right.inverted = !right.inverted"
       />
     </main>
+
+    <SpectrumAnalyzer :analyser-node="analyserNode" color="#7c5cbf" />
 
     <footer class="footer">
       space = power &nbsp;·&nbsp; ←/→ select knob &nbsp;·&nbsp; ↑/↓ adjust &nbsp;·&nbsp; drag or scroll &nbsp;·&nbsp; click value to edit

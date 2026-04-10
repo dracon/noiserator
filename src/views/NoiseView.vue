@@ -4,8 +4,9 @@ import { useNoiseEngine } from '../composables/useNoiseEngine'
 import type { NoiseType } from '../composables/useNoiseEngine'
 import Knob from '../components/Knob.vue'
 import NoiseTypeKnob from '../components/NoiseTypeKnob.vue'
+import SpectrumAnalyzer from '../components/SpectrumAnalyzer.vue'
 
-const { state, isRunning, toggle, NOISE_TYPES } = useNoiseEngine()
+const { state, isRunning, toggle, NOISE_TYPES, analyserNode } = useNoiseEngine()
 
 // Keyboard navigation: noise-type(0), vol(1), width(2)
 const focusedKnob = ref(-1)
@@ -113,6 +114,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         </div>
       </div>
     </main>
+
+    <SpectrumAnalyzer :analyser-node="analyserNode" color="#4ecdc4" />
 
     <footer class="footer">
       space = power &nbsp;·&nbsp; ←/→ select knob &nbsp;·&nbsp; ↑/↓ adjust &nbsp;·&nbsp; drag or scroll &nbsp;·&nbsp; click noise type to cycle

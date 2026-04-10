@@ -4,8 +4,9 @@ import { useNotchFilter } from '../composables/useNotchFilter'
 import type { AudioSource } from '../composables/useNotchFilter'
 import Knob from '../components/Knob.vue'
 import FrequencyChart from '../components/FrequencyChart.vue'
+import SpectrumAnalyzer from '../components/SpectrumAnalyzer.vue'
 
-const { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand } = useNotchFilter()
+const { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand, analyserNode } = useNotchFilter()
 
 // Keyboard navigation
 // Knob order: band0-freq, band0-q, band1-freq, band1-q, ...
@@ -87,6 +88,7 @@ const sources: { value: AudioSource; label: string; icon: string; hint: string }
     <div class="tagline">tinnitus notch filter · {{ sourceMode === 'mic' ? 'mic' : 'app audio' }} → headphone</div>
 
     <!-- Frequency response chart -->
+    <SpectrumAnalyzer :analyser-node="analyserNode" color="#e066ff" :width="680" />
     <FrequencyChart :bands="bands" :width="680" :height="140" />
 
     <!-- Source selector -->

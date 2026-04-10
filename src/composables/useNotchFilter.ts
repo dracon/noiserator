@@ -35,6 +35,7 @@ export function useNotchFilter() {
 
   const isRunning = ref(false)
   const error = ref<string | null>(null)
+  const analyserNode = ref<AnalyserNode | null>(null)
   const sourceMode = ref<AudioSource>('mic')
   const bands = ref<NotchBand[]>(loadBands())
 
@@ -62,13 +63,23 @@ export function useNotchFilter() {
     filterNodes.forEach(n => { try { n.disconnect() } catch { /* ok */ } })
 
     const nodes = createChain()
+
+    if (!analyserNode.value && ctx) {
+      analyserNode.value = ctx.createAnalyser()
+      analyserNode.value.fftSize = 2048
+      analyserNode.value.smoothingTimeConstant = 0.8
+    }
+
     if (!nodes || nodes.length === 0) {
       source.connect(ctx.destination)
+      if (analyserNode.value) source.connect(analyserNode.value)
       return
     }
     source.connect(nodes[0])
     for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1])
-    nodes[nodes.length - 1].connect(ctx.destination)
+    const lastNode = nodes[nodes.length - 1]
+    lastNode.connect(ctx.destination)
+    if (analyserNode.value) lastNode.connect(analyserNode.value)
   }
 
   async function getStream(): Promise<MediaStream> {
@@ -125,6 +136,8 @@ export function useNotchFilter() {
     source?.disconnect()
     filterNodes.forEach(n => n.disconnect())
     filterNodes.clear()
+    analyserNode.value?.disconnect()
+    analyserNode.value = null
     ctx?.close()
     stream?.getTracks().forEach(t => t.stop())
     ctx = null
@@ -173,5 +186,5 @@ export function useNotchFilter() {
 
   onUnmounted(stop)
 
-  return { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand }
+  return { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand, analyserNode }
 }

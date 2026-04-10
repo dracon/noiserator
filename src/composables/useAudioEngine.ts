@@ -65,6 +65,7 @@ export function useAudioEngine() {
   let masterGain: GainNode | null = null
 
   const isRunning = ref(false)
+  const analyserNode = ref<AnalyserNode | null>(null)
 
   const saved = loadSettings()
   const left = ref<ChannelState>(saved.left)
@@ -77,6 +78,11 @@ export function useAudioEngine() {
     masterGain = ctx.createGain()
     masterGain.gain.value = 1
     masterGain.connect(ctx.destination)
+
+    analyserNode.value = ctx.createAnalyser()
+    analyserNode.value.fftSize = 2048
+    analyserNode.value.smoothingTimeConstant = 0.8
+    masterGain.connect(analyserNode.value)
 
     merger = ctx.createChannelMerger(2)
     merger.connect(masterGain)
@@ -121,6 +127,7 @@ export function useAudioEngine() {
     rightGain?.disconnect()
     merger?.disconnect()
     masterGain?.disconnect()
+    analyserNode.value?.disconnect()
     leftOsc = null
     rightOsc = null
     leftPhase = null
@@ -129,6 +136,7 @@ export function useAudioEngine() {
     rightGain = null
     merger = null
     masterGain = null
+    analyserNode.value = null
   }
 
   function start() {
@@ -215,5 +223,5 @@ export function useAudioEngine() {
 
   onUnmounted(stop)
 
-  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS }
+  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode }
 }
