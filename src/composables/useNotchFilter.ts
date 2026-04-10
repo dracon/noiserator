@@ -27,10 +27,13 @@ function loadBands(): NotchBand[] {
   return [{ id: idCounter++, frequency: 4000, q: 30, enabled: true }]
 }
 
+export type NotchFilterReturn = ReturnType<typeof useNotchFilter>
+
 export function useNotchFilter() {
   let ctx: AudioContext | null = null
   let source: MediaStreamAudioSourceNode | null = null
   let stream: MediaStream | null = null
+  let masterGain: GainNode | null = null
   const filterNodes = new Map<number, BiquadFilterNode>()
 
   const isRunning = ref(false)
@@ -58,28 +61,31 @@ export function useNotchFilter() {
   }
 
   function reconnect() {
-    if (!ctx || !source) return
+    if (!ctx || !source || !masterGain) return
     try { source.disconnect() } catch { /* ok */ }
     filterNodes.forEach(n => { try { n.disconnect() } catch { /* ok */ } })
+    // Detach analyser from masterGain so we can re-attach cleanly below
+    if (analyserNode.value) {
+      try { masterGain.disconnect(analyserNode.value) } catch { /* ok */ }
+    }
 
     const nodes = createChain()
 
-    if (!analyserNode.value && ctx) {
+    if (!analyserNode.value) {
       analyserNode.value = ctx.createAnalyser()
       analyserNode.value.fftSize = 2048
       analyserNode.value.smoothingTimeConstant = 0.8
     }
 
     if (!nodes || nodes.length === 0) {
-      source.connect(ctx.destination)
-      if (analyserNode.value) source.connect(analyserNode.value)
-      return
+      source.connect(masterGain)
+    } else {
+      source.connect(nodes[0])
+      for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1])
+      nodes[nodes.length - 1].connect(masterGain)
     }
-    source.connect(nodes[0])
-    for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1])
-    const lastNode = nodes[nodes.length - 1]
-    lastNode.connect(ctx.destination)
-    if (analyserNode.value) lastNode.connect(analyserNode.value)
+
+    masterGain.connect(analyserNode.value)
   }
 
   async function getStream(): Promise<MediaStream> {
@@ -117,6 +123,10 @@ export function useNotchFilter() {
       ctx = new AudioContext()
       source = ctx.createMediaStreamSource(stream)
 
+      masterGain = ctx.createGain()
+      masterGain.gain.value = 1
+      masterGain.connect(ctx.destination)
+
       // When the app audio stream ends (user closed the share), auto-stop.
       stream.getAudioTracks().forEach(t => {
         t.addEventListener('ended', stop)
@@ -138,6 +148,8 @@ export function useNotchFilter() {
     filterNodes.clear()
     analyserNode.value?.disconnect()
     analyserNode.value = null
+    masterGain?.disconnect()
+    masterGain = null
     ctx?.close()
     stream?.getTracks().forEach(t => t.stop())
     ctx = null
@@ -184,7 +196,24 @@ export function useNotchFilter() {
     }
   }, { deep: true })
 
+  function fadeOut(duration: number): Promise<void> {
+    return new Promise(resolve => {
+      if (!isRunning.value || !ctx || !masterGain) { resolve(); return }
+      const now = ctx.currentTime
+      masterGain.gain.setValueAtTime(masterGain.gain.value, now)
+      masterGain.gain.linearRampToValueAtTime(0, now + duration)
+      setTimeout(() => { stop(); resolve() }, duration * 1000)
+    })
+  }
+
+  function cancelFade() {
+    if (ctx && masterGain) {
+      masterGain.gain.cancelScheduledValues(ctx.currentTime)
+      masterGain.gain.setTargetAtTime(1, ctx.currentTime, 0.02)
+    }
+  }
+
   onUnmounted(stop)
 
-  return { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand, analyserNode }
+  return { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand, analyserNode, fadeOut, cancelFade }
 }

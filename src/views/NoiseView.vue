@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useNoiseEngine } from '../composables/useNoiseEngine'
+import { ref, inject, onMounted, onUnmounted } from 'vue'
 import type { NoiseType } from '../composables/useNoiseEngine'
 import Knob from '../components/Knob.vue'
 import NoiseTypeKnob from '../components/NoiseTypeKnob.vue'
 import SpectrumAnalyzer from '../components/SpectrumAnalyzer.vue'
+import { NoiseEngineKey } from '../injectionKeys'
 
-const { state, isRunning, toggle, NOISE_TYPES, analyserNode } = useNoiseEngine()
+const { state, isRunning, toggle, NOISE_TYPES, analyserNode } = inject(NoiseEngineKey)!
 
 // Keyboard navigation: noise-type(0), vol(1), width(2)
 const focusedKnob = ref(-1)

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAudioEngine } from '../composables/useAudioEngine'
+import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import ChannelPanel from '../components/ChannelPanel.vue'
 import Knob from '../components/Knob.vue'
 import SpectrumAnalyzer from '../components/SpectrumAnalyzer.vue'
+import { AudioEngineKey } from '../injectionKeys'
 
-const { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode } = useAudioEngine()
+const { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode } = inject(AudioEngineKey)!
 
 function selectPreset(key: string) {
   const preset = BINAURAL_PRESETS[key]

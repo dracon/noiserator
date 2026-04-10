@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useNotchFilter } from '../composables/useNotchFilter'
+import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import type { AudioSource } from '../composables/useNotchFilter'
 import Knob from '../components/Knob.vue'
 import FrequencyChart from '../components/FrequencyChart.vue'
 import SpectrumAnalyzer from '../components/SpectrumAnalyzer.vue'
+import { NotchFilterKey } from '../injectionKeys'
 
-const { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand, analyserNode } = useNotchFilter()
+const { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand, analyserNode } = inject(NotchFilterKey)!
 
 // Keyboard navigation
 // Knob order: band0-freq, band0-q, band1-freq, band1-q, ...

@@ -28,6 +28,8 @@ function saveSettings(state: NoiseState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
+export type NoiseEngineReturn = ReturnType<typeof useNoiseEngine>
+
 export function useNoiseEngine() {
   let ctx: AudioContext | null = null
   let workletNode: AudioWorkletNode | null = null
@@ -107,7 +109,24 @@ export function useNoiseEngine() {
   // Persist
   watch(state, () => saveSettings(state.value), { deep: true })
 
+  function fadeOut(duration: number): Promise<void> {
+    return new Promise(resolve => {
+      if (!isRunning.value || !ctx || !gainNode) { resolve(); return }
+      const now = ctx.currentTime
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now)
+      gainNode.gain.linearRampToValueAtTime(0, now + duration)
+      setTimeout(() => { stop(); resolve() }, duration * 1000)
+    })
+  }
+
+  function cancelFade() {
+    if (ctx && gainNode) {
+      gainNode.gain.cancelScheduledValues(ctx.currentTime)
+      gainNode.gain.setTargetAtTime(1, ctx.currentTime, 0.02)
+    }
+  }
+
   onUnmounted(stop)
 
-  return { state, isRunning, toggle, NOISE_TYPES, analyserNode }
+  return { state, isRunning, toggle, NOISE_TYPES, analyserNode, fadeOut, cancelFade }
 }

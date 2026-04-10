@@ -53,6 +53,8 @@ function saveSettings(left: ChannelState, right: ChannelState, binaural: Binaura
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, right, binaural }))
 }
 
+export type AudioEngineReturn = ReturnType<typeof useAudioEngine>
+
 export function useAudioEngine() {
   let ctx: AudioContext | null = null
   let leftOsc: OscillatorNode | null = null
@@ -221,7 +223,24 @@ export function useAudioEngine() {
   // Persist any state change to localStorage
   watch([left, right, binaural], () => saveSettings(left.value, right.value, binaural.value), { deep: true })
 
+  function fadeOut(duration: number): Promise<void> {
+    return new Promise(resolve => {
+      if (!isRunning.value || !ctx || !masterGain) { resolve(); return }
+      const now = ctx.currentTime
+      masterGain.gain.setValueAtTime(masterGain.gain.value, now)
+      masterGain.gain.linearRampToValueAtTime(0, now + duration)
+      setTimeout(() => { stop(); resolve() }, duration * 1000)
+    })
+  }
+
+  function cancelFade() {
+    if (ctx && masterGain) {
+      masterGain.gain.cancelScheduledValues(ctx.currentTime)
+      masterGain.gain.setTargetAtTime(1, ctx.currentTime, 0.02)
+    }
+  }
+
   onUnmounted(stop)
 
-  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode }
+  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode, fadeOut, cancelFade }
 }

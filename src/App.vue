@@ -1,17 +1,38 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, provide } from 'vue'
 import OscillatorView from './views/OscillatorView.vue'
 import NotchView from './views/NotchView.vue'
 import NoiseView from './views/NoiseView.vue'
+import MixerView from './views/MixerView.vue'
+import { useAudioEngine } from './composables/useAudioEngine'
+import { useNoiseEngine }  from './composables/useNoiseEngine'
+import { useNotchFilter }  from './composables/useNotchFilter'
+import { useSessionTimer } from './composables/useSessionTimer'
+import { AudioEngineKey, NoiseEngineKey, NotchFilterKey, SessionTimerKey } from './injectionKeys'
 
-type Tab = 'oscillator' | 'notch' | 'noise'
+type Tab = 'oscillator' | 'notch' | 'noise' | 'mixer'
 const activeTab = ref<Tab>('oscillator')
+
+const audioEngine = useAudioEngine()
+const noiseEngine = useNoiseEngine()
+const notchFilter = useNotchFilter()
+const sessionTimer = useSessionTimer(audioEngine, noiseEngine, notchFilter)
+
+provide(AudioEngineKey, audioEngine)
+provide(NoiseEngineKey, noiseEngine)
+provide(NotchFilterKey, notchFilter)
+provide(SessionTimerKey, sessionTimer)
 </script>
 
 <template>
   <div class="app">
     <header class="title-bar">
       <div class="logo"><span class="logo-n">N</span>OISERATOR</div>
+      <div v-if="sessionTimer.status.value !== 'idle'" class="timer-indicator">
+        <span class="timer-dot" :class="sessionTimer.status.value" />
+        {{ sessionTimer.remainingFormatted.value }}
+      </div>
+
       <nav class="tabs">
         <button
           class="tab"
@@ -46,6 +67,21 @@ const activeTab = ref<Tab>('oscillator')
           </svg>
           NOISE
         </button>
+        <button
+          class="tab"
+          :class="{ active: activeTab === 'mixer' }"
+          @click="activeTab = 'mixer'"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <line x1="2" y1="3" x2="2" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="6" y1="2" x2="6" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="10" y1="4" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="2" cy="5.5" r="1.5" fill="currentColor"/>
+            <circle cx="6" cy="4.5" r="1.5" fill="currentColor"/>
+            <circle cx="10" cy="6.5" r="1.5" fill="currentColor"/>
+          </svg>
+          MIX
+        </button>
       </nav>
     </header>
 
@@ -53,6 +89,7 @@ const activeTab = ref<Tab>('oscillator')
       <OscillatorView v-if="activeTab === 'oscillator'" />
       <NotchView      v-if="activeTab === 'notch'" />
       <NoiseView      v-if="activeTab === 'noise'" />
+      <MixerView      v-if="activeTab === 'mixer'" />
     </main>
   </div>
 </template>
@@ -135,6 +172,38 @@ const activeTab = ref<Tab>('oscillator')
 
 .tab.active:nth-child(3) {
   color: #4ecdc4;
+}
+
+.tab.active:nth-child(4) {
+  color: #f0a500;
+}
+
+/* Timer indicator */
+.timer-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #f0a500;
+}
+
+.timer-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f0a500;
+  box-shadow: 0 0 6px #f0a500;
+  flex-shrink: 0;
+}
+
+.timer-dot.fading {
+  animation: timer-fade-pulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes timer-fade-pulse {
+  0%   { opacity: 1; }
+  100% { opacity: 0.3; }
 }
 
 .view-host {
