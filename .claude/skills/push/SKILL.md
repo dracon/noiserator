@@ -2,7 +2,7 @@
 name: push
 description: Push commits to the remote Git repository
 disable-model-invocation: true
-argument-hint: [remote] [branch]
+argument-hint: "[remote] [branch]"
 allowed-tools: Bash
 ---
 

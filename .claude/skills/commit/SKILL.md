@@ -2,7 +2,7 @@
 name: commit
 description: Stage and commit changes with a descriptive message following conventional commit style
 disable-model-invocation: true
-argument-hint: [message]
+argument-hint: "[message]"
 allowed-tools: Bash
 ---
 
