@@ -37,4 +37,5 @@ npm-debug.log*
 # Local files
 claude-chat.txt
 test-results/
+.playwright-mcp/
 .gitnexus
