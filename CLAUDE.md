@@ -6,7 +6,7 @@ Noiserator is a Vue 3 + TypeScript single-page audio tool. It has four pages:
 - **Oscillator** — dual-channel stereo oscillator with independent frequency, volume, waveform, and phase controls per channel. Includes a binaural beats mode.
 - **Notch Filter** — microphone or app audio → notch filter chain → headphone output for tinnitus relief.
 - **Noise** — white/pink/brown noise generator with stereo width control, powered by an `AudioWorklet`.
-- **Mixer** — cross-engine control panel with per-engine start/stop + volume knobs, plus a session timer for managed listening sessions.
+- **Mixer** — cross-engine control panel with per-engine start/stop + volume knobs, session timer for managed listening, and audio recording with download.
 
 No routing library. Tab state is a single `ref<'oscillator' | 'notch' | 'noise' | 'mixer'>` in `App.vue`.
 
@@ -47,7 +47,14 @@ Each page has its own composable that owns an `AudioContext`:
   - Exposes `duration`, `remainingTime`, `remainingFormatted`, `status` (`'idle'`, `'running'`, `'paused'`) as reactive refs
   - Used by MixerView to provide preset durations (30 sec, 1 min, 2 min, 5 min) and custom duration input
 
-Each composable exposes `analyserNode: Ref<AnalyserNode | null>` — created on start as a branch tap from the output node, nulled on stop.
+- `src/composables/useRecorder.ts` — audio recording and export
+  - Takes all three engine instances (audioEngine, noiseEngine, notchFilter) as input
+  - `start()`: snapshots active engine streams, creates a mixing `AudioContext`, records via `MediaRecorder`
+  - `stop()`: finalizes recording, creates blob with `.webm` format
+  - Exposes `isRecording`, `recordings` (list of recorded files), `elapsedSeconds`, `start()`, `stop()`, `download()`, `discard()`
+  - Stores recordings in memory with object URLs; user can download multiple times
+
+Each composable exposes `analyserNode: Ref<AnalyserNode | null>` — created on start as a branch tap from the output node, nulled on stop. Audio engines also expose `recordingStream: Ref<MediaStream | null>` for recording tap-off.
 
 ### Components
 
@@ -81,7 +88,7 @@ Global CSS variables are defined in `src/style.css`. All components use scoped s
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **noiserator** (497 symbols, 654 relationships, 11 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **noiserator** (536 symbols, 691 relationships, 11 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

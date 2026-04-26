@@ -34,11 +34,13 @@ export function useNotchFilter() {
   let source: MediaStreamAudioSourceNode | null = null
   let stream: MediaStream | null = null
   let masterGain: GainNode | null = null
+  let mediaStreamDest: MediaStreamAudioDestinationNode | null = null
   const filterNodes = new Map<number, BiquadFilterNode>()
 
   const isRunning = ref(false)
   const error = ref<string | null>(null)
   const analyserNode = ref<AnalyserNode | null>(null)
+  const recordingStream = ref<MediaStream | null>(null)
   const sourceMode = ref<AudioSource>('mic')
   const bands = ref<NotchBand[]>(loadBands())
 
@@ -127,6 +129,10 @@ export function useNotchFilter() {
       masterGain.gain.value = 1
       masterGain.connect(ctx.destination)
 
+      mediaStreamDest = ctx.createMediaStreamDestination()
+      masterGain.connect(mediaStreamDest)
+      recordingStream.value = mediaStreamDest.stream
+
       // When the app audio stream ends (user closed the share), auto-stop.
       stream.getAudioTracks().forEach(t => {
         t.addEventListener('ended', stop)
@@ -150,6 +156,9 @@ export function useNotchFilter() {
     analyserNode.value = null
     masterGain?.disconnect()
     masterGain = null
+    mediaStreamDest?.disconnect()
+    mediaStreamDest = null
+    recordingStream.value = null
     ctx?.close()
     stream?.getTracks().forEach(t => t.stop())
     ctx = null
@@ -215,5 +224,5 @@ export function useNotchFilter() {
 
   onUnmounted(stop)
 
-  return { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand, analyserNode, fadeOut, cancelFade }
+  return { bands, isRunning, error, sourceMode, toggle, setSource, addBand, removeBand, analyserNode, recordingStream, fadeOut, cancelFade }
 }

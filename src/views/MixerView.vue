@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { inject, ref, computed } from 'vue'
 import Knob from '../components/Knob.vue'
-import { AudioEngineKey, NoiseEngineKey, NotchFilterKey, SessionTimerKey } from '../injectionKeys'
+import { AudioEngineKey, NoiseEngineKey, NotchFilterKey, SessionTimerKey, RecorderKey } from '../injectionKeys'
 
 const audioEngine = inject(AudioEngineKey)!
 const noiseEngine = inject(NoiseEngineKey)!
 const notchFilter = inject(NotchFilterKey)!
 const timer = inject(SessionTimerKey)!
+const recorder = inject(RecorderKey)!
 
 const FADE_OPTIONS = [
   { label: '30 sec', value: 30 },
@@ -26,6 +27,19 @@ function applyCustomDuration() {
 const activePreset = computed(() =>
   [15, 30, 45, 60].includes(timer.duration.value / 60) ? timer.duration.value / 60 : null
 )
+
+const elapsedFormatted = computed(() => {
+  const s = recorder.elapsedSeconds.value
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+})
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
 </script>
 
 <template>
@@ -160,6 +174,45 @@ const activePreset = computed(() =>
         <div class="status-label">
           {{ timer.status.value === 'fading' ? 'FADING OUT...' : 'RUNNING' }}
         </div>
+      </div>
+    </div>
+
+    <!-- Recording panel -->
+    <div class="recording-panel">
+      <div class="panel-header rec-header">
+        RECORDING
+        <span v-if="recorder.isRecording.value" class="rec-dot blink" />
+      </div>
+
+      <div class="rec-controls">
+        <button
+          class="rec-btn"
+          :class="{ recording: recorder.isRecording.value }"
+          @click="recorder.isRecording.value ? recorder.stop() : recorder.start()"
+        >
+          {{ recorder.isRecording.value ? 'STOP' : 'RECORD' }}
+        </button>
+        <span v-if="recorder.isRecording.value" class="rec-elapsed">
+          {{ elapsedFormatted }}
+        </span>
+      </div>
+
+      <div v-if="recorder.recordings.value.length > 0" class="rec-list">
+        <div
+          v-for="(rec, i) in recorder.recordings.value"
+          :key="rec.url"
+          class="rec-item"
+        >
+          <span class="rec-index">#{{ recorder.recordings.value.length - i }}</span>
+          <span class="rec-duration">{{ formatDuration(rec.duration) }}</span>
+          <span class="rec-time">{{ rec.timestamp.toLocaleTimeString() }}</span>
+          <button class="rec-action" @click="recorder.download(rec)">SAVE</button>
+          <button class="rec-action discard" @click="recorder.discard(rec)">X</button>
+        </div>
+      </div>
+
+      <div v-else-if="!recorder.isRecording.value" class="rec-hint">
+        No recordings yet. Start an engine, then press RECORD.
       </div>
     </div>
   </div>
@@ -437,5 +490,137 @@ const activePreset = computed(() =>
   letter-spacing: 0.2em;
   color: var(--text-dim);
   text-transform: uppercase;
+}
+
+/* Recording panel */
+.recording-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background: var(--panel);
+  border: 1px solid color-mix(in srgb, #ff4455 20%, var(--border));
+  border-radius: 14px;
+  padding: 20px 28px 24px;
+  width: 560px;
+}
+
+.rec-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff4455;
+}
+
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff4455;
+  box-shadow: 0 0 6px #ff4455;
+  flex-shrink: 0;
+}
+
+.blink {
+  animation: rec-blink 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes rec-blink {
+  0%   { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+
+.rec-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rec-btn {
+  padding: 8px 32px;
+  border-radius: 8px;
+  border: 1px solid #ff4455;
+  background: color-mix(in srgb, #ff4455 12%, var(--surface));
+  color: #ff4455;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.rec-btn:hover { filter: brightness(1.2); }
+
+.rec-btn.recording {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+}
+
+.rec-elapsed {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  color: #ff4455;
+}
+
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.rec-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.rec-index {
+  color: var(--text-dim);
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.rec-duration {
+  color: var(--text);
+  flex-shrink: 0;
+  width: 48px;
+}
+
+.rec-time {
+  color: var(--text-dim);
+  flex: 1;
+}
+
+.rec-action {
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+
+.rec-action:hover { color: var(--text); border-color: var(--text-dim); }
+
+.rec-action.discard:hover { color: #ff4455; border-color: #ff4455; }
+
+.rec-hint {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  opacity: 0.6;
 }
 </style>

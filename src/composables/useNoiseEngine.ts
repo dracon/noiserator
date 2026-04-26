@@ -34,9 +34,11 @@ export function useNoiseEngine() {
   let ctx: AudioContext | null = null
   let workletNode: AudioWorkletNode | null = null
   let gainNode: GainNode | null = null
+  let mediaStreamDest: MediaStreamAudioDestinationNode | null = null
 
   const isRunning = ref(false)
   const analyserNode = ref<AnalyserNode | null>(null)
+  const recordingStream = ref<MediaStream | null>(null)
   const state = ref<NoiseState>(loadSettings())
 
   async function start() {
@@ -68,6 +70,10 @@ export function useNoiseEngine() {
     analyserNode.value.smoothingTimeConstant = 0.8
     gainNode.connect(analyserNode.value)
 
+    mediaStreamDest = ctx.createMediaStreamDestination()
+    gainNode.connect(mediaStreamDest)
+    recordingStream.value = mediaStreamDest.stream
+
     isRunning.value = true
   }
 
@@ -79,6 +85,9 @@ export function useNoiseEngine() {
     workletNode = null
     gainNode = null
     analyserNode.value = null
+    mediaStreamDest?.disconnect()
+    mediaStreamDest = null
+    recordingStream.value = null
     ctx?.close()
     ctx = null
     isRunning.value = false
@@ -128,5 +137,5 @@ export function useNoiseEngine() {
 
   onUnmounted(stop)
 
-  return { state, isRunning, toggle, NOISE_TYPES, analyserNode, fadeOut, cancelFade }
+  return { state, isRunning, toggle, NOISE_TYPES, analyserNode, recordingStream, fadeOut, cancelFade }
 }
