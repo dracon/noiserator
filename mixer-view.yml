@@ -1,0 +1,77 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]: NOISERATOR
+    - navigation [ref=e6]:
+      - button "OSCILLATOR" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+        - text: OSCILLATOR
+      - button "NOTCH FILTER" [ref=e10] [cursor=pointer]:
+        - img [ref=e11]
+        - text: NOTCH FILTER
+      - button "NOISE" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+        - text: NOISE
+      - button "MIX" [ref=e16] [cursor=pointer]:
+        - img [ref=e17]
+        - text: MIX
+  - main [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: dual oscillator · stereo
+        - button "BINAURAL" [ref=e25] [cursor=pointer]: BINAURAL
+      - main [ref=e27]:
+        - generic [ref=e28]:
+          - generic [ref=e29]:
+            - generic [ref=e30]: LEFT ◂
+            - generic [ref=e31]:
+              - button "0°" [ref=e32] [cursor=pointer]:
+                - img [ref=e33]
+                - generic [ref=e36]: 0°
+              - button [ref=e37] [cursor=pointer]
+          - generic [ref=e39]:
+            - generic [ref=e41]:
+              - img [ref=e42]
+              - generic [ref=e48]: FREQ
+              - generic [ref=e49]: 220Hz
+            - generic [ref=e50]:
+              - img [ref=e51]
+              - generic [ref=e57]: VOL
+              - generic [ref=e58]: "0.25"
+            - generic [ref=e59]:
+              - img [ref=e60]
+              - generic [ref=e69]: WAVE
+              - generic [ref=e70]: SINE
+        - generic [ref=e74]:
+          - button [ref=e75] [cursor=pointer]:
+            - img [ref=e76]
+          - generic [ref=e78]: START
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: ▸ RIGHT
+            - generic [ref=e85]:
+              - button "0°" [ref=e86] [cursor=pointer]:
+                - img [ref=e87]
+                - generic [ref=e90]: 0°
+              - button [ref=e91] [cursor=pointer]
+          - generic [ref=e93]:
+            - generic [ref=e95]:
+              - img [ref=e96]
+              - generic [ref=e102]: FREQ
+              - generic [ref=e103]: 440Hz
+            - generic [ref=e104]:
+              - img [ref=e105]
+              - generic [ref=e111]: VOL
+              - generic [ref=e112]: "0.25"
+            - generic [ref=e113]:
+              - img [ref=e114]
+              - generic [ref=e123]: WAVE
+              - generic [ref=e124]: SINE
+      - generic [ref=e127]:
+        - generic [ref=e128]: SPECTRUM
+        - generic [ref=e130]:
+          - generic [ref=e131]: 20 Hz
+          - generic [ref=e132]: "100"
+          - generic [ref=e133]: 1 kHz
+          - generic [ref=e134]: 10 kHz
+          - generic [ref=e135]: 20 kHz
+      - generic [ref=e136]: space = power · ←/→ select knob · ↑/↓ adjust · drag or scroll · click value to edit
