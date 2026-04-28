@@ -62,12 +62,14 @@ Each composable exposes `analyserNode: Ref<AnalyserNode | null>` — created on 
 - `WaveKnob.vue` — Same visual as Knob but snaps to 4 wave positions. Click to cycle, drag to scrub.
 - `NoiseTypeKnob.vue` — Same visual as WaveKnob but for white/pink/brown noise selection.
 - `ChannelPanel.vue` — Composes Knob + WaveKnob + LED toggles for one oscillator channel.
+- `Fader.vue` — Vertical linear fader with LED-style segmented track (20 segments, lit from bottom proportionally to value). Click anywhere on track to jump, drag to sweep, scroll wheel for ±0.02 fine steps. Props: `modelValue` (0–1), `color`, `label`, `height` (px, default 160), `segments` (default 20).
 - `FrequencyChart.vue` — Pure SVG frequency response curve. Computes biquad notch magnitude response mathematically (no audio nodes). Log-scale X axis (20 Hz–20 kHz), dB Y axis.
 - `SpectrumAnalyzer.vue` — Canvas-based real-time FFT display. Takes `analyserNode: AnalyserNode | null` prop; runs a `requestAnimationFrame` loop drawing a log-scale filled spectrum. Props: `analyserNode`, `color`, `width`, `height`.
 
 ### Views
 
-- `OscillatorView.vue`, `NotchView.vue`, `NoiseView.vue` — Individual engine control pages with spectrum analysis.
+- `OscillatorView.vue` — Dual oscillator page. Below the channel panels sits a fader row: a purple `Fader` for L volume and a cyan `Fader` for R volume, with a GROUP toggle in the center that locks both faders to move in sync. The existing VOL knobs in each `ChannelPanel` remain for fine-tuning. `volLinked` (ref) drives the sync; `setLeftVol`/`setRightVol` handlers propagate changes when linked.
+- `NotchView.vue`, `NoiseView.vue` — Individual engine control pages with spectrum analysis.
 - `MixerView.vue` — Master control dashboard: per-engine start/stop buttons + volume knobs, plus session timer with preset durations (30 sec–5 min) and custom duration input. Injects all three engines and the session timer to coordinate playback.
 
 ### Styling
@@ -88,7 +90,7 @@ Global CSS variables are defined in `src/style.css`. All components use scoped s
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **noiserator** (576 symbols, 738 relationships, 11 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **noiserator** (index may be stale — run `npx gitnexus analyze` to refresh after recent changes). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

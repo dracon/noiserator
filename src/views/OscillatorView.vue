@@ -2,10 +2,12 @@
 import { ref, computed, inject, onMounted, onUnmounted } from 'vue'
 import ChannelPanel from '../components/ChannelPanel.vue'
 import Knob from '../components/Knob.vue'
+import Fader from '../components/Fader.vue'
+import VuMeter from '../components/VuMeter.vue'
 import SpectrumAnalyzer from '../components/SpectrumAnalyzer.vue'
 import { AudioEngineKey } from '../injectionKeys'
 
-const { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode } = inject(AudioEngineKey)!
+const { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode, leftAnalyserNode, rightAnalyserNode } = inject(AudioEngineKey)!
 
 function selectPreset(key: string) {
   const preset = BINAURAL_PRESETS[key]
@@ -97,6 +99,18 @@ function onKeydown(e: KeyboardEvent) {
 
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+
+const volLinked = ref(false)
+
+function setLeftVol(v: number) {
+  left.value.volume = v
+  if (volLinked.value) right.value.volume = v
+}
+
+function setRightVol(v: number) {
+  right.value.volume = v
+  if (volLinked.value) left.value.volume = v
+}
 </script>
 
 <template>
@@ -205,6 +219,39 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         @toggle:inverted="right.inverted = !right.inverted"
       />
     </main>
+
+    <div class="fader-row">
+      <div class="fader-panel">
+        <Fader
+          :model-value="left.volume"
+          color="#7c5cbf"
+          label="L VOL"
+          @update:model-value="setLeftVol($event)"
+        />
+        <VuMeter :analyser-node="leftAnalyserNode" />
+      </div>
+      <div class="fader-center">
+        <div class="fader-center-inner">
+          <button class="link-btn" :class="{ on: volLinked }" @click="volLinked = !volLinked">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="5" width="6" height="6" rx="3" stroke="currentColor" stroke-width="1.5" />
+              <rect x="9" y="5" width="6" height="6" rx="3" stroke="currentColor" stroke-width="1.5" />
+              <line x1="7" y1="8" x2="9" y2="8" stroke="currentColor" stroke-width="1.5" />
+            </svg>
+            GROUP
+          </button>
+        </div>
+      </div>
+      <div class="fader-panel">
+        <VuMeter :analyser-node="rightAnalyserNode" />
+        <Fader
+          :model-value="right.volume"
+          color="#00b8d9"
+          label="R VOL"
+          @update:model-value="setRightVol($event)"
+        />
+      </div>
+    </div>
 
     <SpectrumAnalyzer :analyser-node="analyserNode" color="#7c5cbf" />
 
@@ -329,6 +376,62 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 @keyframes vu-pulse {
   0%   { height: 30%; }
   100% { height: 85%; }
+}
+
+/* Fader row */
+.fader-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.fader-panel {
+  width: 300px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+}
+
+.fader-center {
+  width: 120px;
+  display: flex;
+  justify-content: center;
+}
+
+.fader-center-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.link-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  color: var(--text);
+}
+
+.link-btn.on {
+  border-color: var(--accent);
+  color: var(--accent-glow);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 /* Binaural mode */

@@ -69,6 +69,8 @@ export function useAudioEngine() {
 
   const isRunning = ref(false)
   const analyserNode = ref<AnalyserNode | null>(null)
+  const leftAnalyserNode = ref<AnalyserNode | null>(null)
+  const rightAnalyserNode = ref<AnalyserNode | null>(null)
   const recordingStream = ref<MediaStream | null>(null)
 
   const saved = loadSettings()
@@ -98,6 +100,10 @@ export function useAudioEngine() {
     leftGain = ctx.createGain()
     leftGain.gain.value = left.value.enabled ? left.value.volume : 0
     leftGain.connect(merger, 0, 0)
+    leftAnalyserNode.value = ctx.createAnalyser()
+    leftAnalyserNode.value.fftSize = 1024
+    leftAnalyserNode.value.smoothingTimeConstant = 0.5
+    leftGain.connect(leftAnalyserNode.value)
 
     leftPhase = ctx.createGain()
     leftPhase.gain.value = left.value.inverted ? -1 : 1
@@ -106,6 +112,10 @@ export function useAudioEngine() {
     rightGain = ctx.createGain()
     rightGain.gain.value = right.value.enabled ? right.value.volume : 0
     rightGain.connect(merger, 0, 1)
+    rightAnalyserNode.value = ctx.createAnalyser()
+    rightAnalyserNode.value.fftSize = 1024
+    rightAnalyserNode.value.smoothingTimeConstant = 0.5
+    rightGain.connect(rightAnalyserNode.value)
 
     rightPhase = ctx.createGain()
     rightPhase.gain.value = right.value.inverted ? -1 : 1
@@ -136,6 +146,8 @@ export function useAudioEngine() {
     merger?.disconnect()
     masterGain?.disconnect()
     analyserNode.value?.disconnect()
+    leftAnalyserNode.value?.disconnect()
+    rightAnalyserNode.value?.disconnect()
     leftOsc = null
     rightOsc = null
     leftPhase = null
@@ -145,6 +157,8 @@ export function useAudioEngine() {
     merger = null
     masterGain = null
     analyserNode.value = null
+    leftAnalyserNode.value = null
+    rightAnalyserNode.value = null
     mediaStreamDest?.disconnect()
     mediaStreamDest = null
     recordingStream.value = null
@@ -251,5 +265,5 @@ export function useAudioEngine() {
 
   onUnmounted(stop)
 
-  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode, recordingStream, fadeOut, cancelFade }
+  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode, leftAnalyserNode, rightAnalyserNode, recordingStream, fadeOut, cancelFade }
 }
