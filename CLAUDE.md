@@ -80,6 +80,19 @@ Global CSS variables are defined in `src/style.css`. All components use scoped s
 - Notch filter: `#e066ff` (magenta)
 - Noise generator: `#4ecdc4` (teal)
 
+## Testing
+
+Playwright e2e only — no unit test framework (no Vitest/Jest).
+
+```bash
+npm run test:e2e                       # run all tests
+npm run test:e2e -- --grep "pattern"  # run matching tests only
+```
+
+- Tests live in `e2e/`. Each spec navigates to `http://localhost:5173` in a real headless Chromium.
+- Clear localStorage before tests that depend on default state: `await page.evaluate(() => localStorage.clear())` then `await page.reload()`.
+- Stop the dev server: `pkill -f vite`
+
 ## Conventions
 
 - All audio parameter changes use `setTargetAtTime` with a short time constant (0.005–0.01 s) to avoid click artefacts.
