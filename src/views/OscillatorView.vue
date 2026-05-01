@@ -228,22 +228,22 @@ function setRightVol(v: number) {
           label="L VOL"
           @update:model-value="setLeftVol($event)"
         />
-        <VuMeter :analyser-node="leftAnalyserNode" />
       </div>
       <div class="fader-center">
-        <div class="fader-center-inner">
-          <button class="link-btn" :class="{ on: volLinked }" @click="volLinked = !volLinked">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="5" width="6" height="6" rx="3" stroke="currentColor" stroke-width="1.5" />
-              <rect x="9" y="5" width="6" height="6" rx="3" stroke="currentColor" stroke-width="1.5" />
-              <line x1="7" y1="8" x2="9" y2="8" stroke="currentColor" stroke-width="1.5" />
-            </svg>
-            GROUP
-          </button>
+        <div class="vu-pair">
+          <VuMeter :analyser-node="leftAnalyserNode" />
+          <VuMeter :analyser-node="rightAnalyserNode" />
         </div>
+        <button class="link-btn" :class="{ on: volLinked }" @click="volLinked = !volLinked">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="5" width="6" height="6" rx="3" stroke="currentColor" stroke-width="1.5" />
+            <rect x="9" y="5" width="6" height="6" rx="3" stroke="currentColor" stroke-width="1.5" />
+            <line x1="7" y1="8" x2="9" y2="8" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          GROUP
+        </button>
       </div>
       <div class="fader-panel">
-        <VuMeter :analyser-node="rightAnalyserNode" />
         <Fader
           :model-value="right.volume"
           color="#00b8d9"
@@ -386,24 +386,21 @@ function setRightVol(v: number) {
 }
 
 .fader-panel {
-  width: 300px;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
-  gap: 10px;
 }
 
 .fader-center {
-  width: 120px;
-  display: flex;
-  justify-content: center;
-}
-
-.fader-center-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.vu-pair {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
 }
 
 .link-btn {

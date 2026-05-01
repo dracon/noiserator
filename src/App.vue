@@ -1,28 +1,24 @@
 <script setup lang="ts">
 import { ref, provide } from 'vue'
 import OscillatorView from './views/OscillatorView.vue'
-import NotchView from './views/NotchView.vue'
 import NoiseView from './views/NoiseView.vue'
 import MixerView from './views/MixerView.vue'
 import { useAudioEngine } from './composables/useAudioEngine'
 import { useNoiseEngine }  from './composables/useNoiseEngine'
-import { useNotchFilter }  from './composables/useNotchFilter'
 import { useSessionTimer } from './composables/useSessionTimer'
 import { useRecorder }     from './composables/useRecorder'
-import { AudioEngineKey, NoiseEngineKey, NotchFilterKey, SessionTimerKey, RecorderKey } from './injectionKeys'
+import { AudioEngineKey, NoiseEngineKey, SessionTimerKey, RecorderKey } from './injectionKeys'
 
-type Tab = 'oscillator' | 'notch' | 'noise' | 'mixer'
+type Tab = 'oscillator' | 'noise' | 'mixer'
 const activeTab = ref<Tab>('oscillator')
 
 const audioEngine = useAudioEngine()
 const noiseEngine = useNoiseEngine()
-const notchFilter = useNotchFilter()
-const sessionTimer = useSessionTimer(audioEngine, noiseEngine, notchFilter)
-const recorder = useRecorder(audioEngine, noiseEngine, notchFilter)
+const sessionTimer = useSessionTimer(audioEngine, noiseEngine)
+const recorder = useRecorder(audioEngine, noiseEngine)
 
 provide(AudioEngineKey, audioEngine)
 provide(NoiseEngineKey, noiseEngine)
-provide(NotchFilterKey, notchFilter)
 provide(SessionTimerKey, sessionTimer)
 provide(RecorderKey, recorder)
 </script>
@@ -47,17 +43,6 @@ provide(RecorderKey, recorder)
               stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
           </svg>
           OSCILLATOR
-        </button>
-        <button
-          class="tab"
-          :class="{ active: activeTab === 'notch' }"
-          @click="activeTab = 'notch'"
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M1 6 L4 6 Q5 6 5.5 2 Q6 6 6.5 10 Q7 6 8 6 L11 6"
-              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-          </svg>
-          NOTCH FILTER
         </button>
         <button
           class="tab"
@@ -90,7 +75,6 @@ provide(RecorderKey, recorder)
 
     <main class="view-host">
       <OscillatorView v-if="activeTab === 'oscillator'" />
-      <NotchView      v-if="activeTab === 'notch'" />
       <NoiseView      v-if="activeTab === 'noise'" />
       <MixerView      v-if="activeTab === 'mixer'" />
     </main>
@@ -170,14 +154,10 @@ provide(RecorderKey, recorder)
 }
 
 .tab.active:nth-child(2) {
-  color: #e066ff;
-}
-
-.tab.active:nth-child(3) {
   color: #4ecdc4;
 }
 
-.tab.active:nth-child(4) {
+.tab.active:nth-child(3) {
   color: #f0a500;
 }
 

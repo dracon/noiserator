@@ -65,12 +65,17 @@ export function useAudioEngine() {
   let rightGain: GainNode | null = null
   let merger: ChannelMergerNode | null = null
   let masterGain: GainNode | null = null
+  let mixGainNode: GainNode | null = null
+  let splitter: ChannelSplitterNode | null = null
   let mediaStreamDest: MediaStreamAudioDestinationNode | null = null
 
   const isRunning = ref(false)
+  const mixGain = ref(1)
   const analyserNode = ref<AnalyserNode | null>(null)
   const leftAnalyserNode = ref<AnalyserNode | null>(null)
   const rightAnalyserNode = ref<AnalyserNode | null>(null)
+  const masterLeftAnalyserNode = ref<AnalyserNode | null>(null)
+  const masterRightAnalyserNode = ref<AnalyserNode | null>(null)
   const recordingStream = ref<MediaStream | null>(null)
 
   const saved = loadSettings()
@@ -83,15 +88,32 @@ export function useAudioEngine() {
 
     masterGain = ctx.createGain()
     masterGain.gain.value = 1
-    masterGain.connect(ctx.destination)
+
+    mixGainNode = ctx.createGain()
+    mixGainNode.gain.value = mixGain.value
+    masterGain.connect(mixGainNode)
+    mixGainNode.connect(ctx.destination)
 
     analyserNode.value = ctx.createAnalyser()
     analyserNode.value.fftSize = 2048
     analyserNode.value.smoothingTimeConstant = 0.8
-    masterGain.connect(analyserNode.value)
+    mixGainNode.connect(analyserNode.value)
+
+    splitter = ctx.createChannelSplitter(2)
+    mixGainNode.connect(splitter)
+
+    masterLeftAnalyserNode.value = ctx.createAnalyser()
+    masterLeftAnalyserNode.value.fftSize = 1024
+    masterLeftAnalyserNode.value.smoothingTimeConstant = 0.5
+    splitter.connect(masterLeftAnalyserNode.value, 0)
+
+    masterRightAnalyserNode.value = ctx.createAnalyser()
+    masterRightAnalyserNode.value.fftSize = 1024
+    masterRightAnalyserNode.value.smoothingTimeConstant = 0.5
+    splitter.connect(masterRightAnalyserNode.value, 1)
 
     mediaStreamDest = ctx.createMediaStreamDestination()
-    masterGain.connect(mediaStreamDest)
+    mixGainNode.connect(mediaStreamDest)
     recordingStream.value = mediaStreamDest.stream
 
     merger = ctx.createChannelMerger(2)
@@ -145,9 +167,13 @@ export function useAudioEngine() {
     rightGain?.disconnect()
     merger?.disconnect()
     masterGain?.disconnect()
+    mixGainNode?.disconnect()
+    splitter?.disconnect()
     analyserNode.value?.disconnect()
     leftAnalyserNode.value?.disconnect()
     rightAnalyserNode.value?.disconnect()
+    masterLeftAnalyserNode.value?.disconnect()
+    masterRightAnalyserNode.value?.disconnect()
     leftOsc = null
     rightOsc = null
     leftPhase = null
@@ -156,9 +182,13 @@ export function useAudioEngine() {
     rightGain = null
     merger = null
     masterGain = null
+    mixGainNode = null
+    splitter = null
     analyserNode.value = null
     leftAnalyserNode.value = null
     rightAnalyserNode.value = null
+    masterLeftAnalyserNode.value = null
+    masterRightAnalyserNode.value = null
     mediaStreamDest?.disconnect()
     mediaStreamDest = null
     recordingStream.value = null
@@ -243,6 +273,10 @@ export function useAudioEngine() {
     binaural.value.preset = null
   })
 
+  watch(mixGain, v => {
+    if (mixGainNode && ctx) mixGainNode.gain.setTargetAtTime(v, ctx.currentTime, 0.005)
+  })
+
   // Persist any state change to localStorage
   watch([left, right, binaural], () => saveSettings(left.value, right.value, binaural.value), { deep: true })
 
@@ -265,5 +299,5 @@ export function useAudioEngine() {
 
   onUnmounted(stop)
 
-  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode, leftAnalyserNode, rightAnalyserNode, recordingStream, fadeOut, cancelFade }
+  return { left, right, binaural, isRunning, toggle, WAVES, BINAURAL_PRESETS, analyserNode, leftAnalyserNode, rightAnalyserNode, masterLeftAnalyserNode, masterRightAnalyserNode, recordingStream, fadeOut, cancelFade, mixGain }
 }

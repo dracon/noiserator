@@ -196,7 +196,7 @@ test.describe('Fader component', () => {
       await expect(fader.locator('.fader-value')).toContainText('100')
 
       const litCount = await page.evaluate(() =>
-        document.querySelectorAll('.fader-wrap:first-child .seg[style*="background"]').length
+        document.querySelector('.fader-wrap')!.querySelectorAll('.seg[style*="background"]').length
       )
       expect(litCount).toBe(20)
     })
@@ -214,7 +214,7 @@ test.describe('Fader component', () => {
       await expect(fader.locator('.fader-value')).toContainText('0')
 
       const litCount = await page.evaluate(() =>
-        document.querySelectorAll('.fader-wrap:first-child .seg[style*="background"]').length
+        document.querySelector('.fader-wrap')!.querySelectorAll('.seg[style*="background"]').length
       )
       expect(litCount).toBe(0)
     })

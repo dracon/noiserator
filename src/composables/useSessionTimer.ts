@@ -1,7 +1,6 @@
 import { ref, computed } from 'vue'
 import type { AudioEngineReturn } from './useAudioEngine'
 import type { NoiseEngineReturn }  from './useNoiseEngine'
-import type { NotchFilterReturn }  from './useNotchFilter'
 
 export type TimerStatus = 'idle' | 'running' | 'fading'
 export type SessionTimerReturn = ReturnType<typeof useSessionTimer>
@@ -9,7 +8,6 @@ export type SessionTimerReturn = ReturnType<typeof useSessionTimer>
 export function useSessionTimer(
   audioEngine: AudioEngineReturn,
   noiseEngine: NoiseEngineReturn,
-  notchFilter: NotchFilterReturn,
 ) {
   const status       = ref<TimerStatus>('idle')
   const duration     = ref(30 * 60)  // default 30 min in seconds
@@ -39,7 +37,7 @@ export function useSessionTimer(
   function triggerFade() {
     if (intervalId) { clearInterval(intervalId); intervalId = null }
     const fadeSec = fadeDuration.value
-    const engines = [audioEngine, noiseEngine, notchFilter] as const
+    const engines = [audioEngine, noiseEngine] as const
     Promise.all(
       engines.filter(e => e.isRunning.value).map(e => e.fadeOut(fadeSec))
     ).then(() => {
@@ -57,7 +55,7 @@ export function useSessionTimer(
 
   function cancel() {
     if (intervalId) { clearInterval(intervalId); intervalId = null }
-    const engines = [audioEngine, noiseEngine, notchFilter] as const
+    const engines = [audioEngine, noiseEngine] as const
     engines.forEach(e => { if (e.isRunning.value) e.cancelFade() })
     status.value = 'idle'
     remaining.value = 0

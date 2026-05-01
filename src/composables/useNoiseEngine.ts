@@ -34,9 +34,11 @@ export function useNoiseEngine() {
   let ctx: AudioContext | null = null
   let workletNode: AudioWorkletNode | null = null
   let gainNode: GainNode | null = null
+  let mixGainNode: GainNode | null = null
   let mediaStreamDest: MediaStreamAudioDestinationNode | null = null
 
   const isRunning = ref(false)
+  const mixGain = ref(1)
   const analyserNode = ref<AnalyserNode | null>(null)
   const recordingStream = ref<MediaStream | null>(null)
   const state = ref<NoiseState>(loadSettings())
@@ -62,16 +64,20 @@ export function useNoiseEngine() {
     gainNode = ctx.createGain()
     gainNode.gain.value = state.value.volume
 
+    mixGainNode = ctx.createGain()
+    mixGainNode.gain.value = mixGain.value
+
     workletNode.connect(gainNode)
-    gainNode.connect(ctx.destination)
+    gainNode.connect(mixGainNode)
+    mixGainNode.connect(ctx.destination)
 
     analyserNode.value = ctx.createAnalyser()
     analyserNode.value.fftSize = 2048
     analyserNode.value.smoothingTimeConstant = 0.8
-    gainNode.connect(analyserNode.value)
+    mixGainNode.connect(analyserNode.value)
 
     mediaStreamDest = ctx.createMediaStreamDestination()
-    gainNode.connect(mediaStreamDest)
+    mixGainNode.connect(mediaStreamDest)
     recordingStream.value = mediaStreamDest.stream
 
     isRunning.value = true
@@ -81,9 +87,11 @@ export function useNoiseEngine() {
     if (!isRunning.value) return
     workletNode?.disconnect()
     gainNode?.disconnect()
+    mixGainNode?.disconnect()
     analyserNode.value?.disconnect()
     workletNode = null
     gainNode = null
+    mixGainNode = null
     analyserNode.value = null
     mediaStreamDest?.disconnect()
     mediaStreamDest = null
@@ -115,6 +123,10 @@ export function useNoiseEngine() {
     }
   })
 
+  watch(mixGain, v => {
+    if (mixGainNode && ctx) mixGainNode.gain.setTargetAtTime(v, ctx.currentTime, 0.005)
+  })
+
   // Persist
   watch(state, () => saveSettings(state.value), { deep: true })
 
@@ -137,5 +149,5 @@ export function useNoiseEngine() {
 
   onUnmounted(stop)
 
-  return { state, isRunning, toggle, NOISE_TYPES, analyserNode, recordingStream, fadeOut, cancelFade }
+  return { state, isRunning, toggle, NOISE_TYPES, analyserNode, recordingStream, fadeOut, cancelFade, mixGain }
 }

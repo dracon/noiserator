@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('App shell', () => {
-  test('shows logo and both tabs', async ({ page }) => {
+  test('shows logo and all tabs', async ({ page }) => {
     await page.goto('/')
     await expect(page.locator('.logo')).toContainText('OISERATOR')
     await expect(page.getByRole('button', { name: /oscillator/i })).toBeVisible()
-    await expect(page.getByRole('button', { name: /notch filter/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /noise/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /mix/i })).toBeVisible()
   })
 
   test('oscillator tab is active by default', async ({ page }) => {
@@ -15,17 +16,16 @@ test.describe('App shell', () => {
     await expect(page.locator('.tagline')).toContainText('dual oscillator')
   })
 
-  test('can switch to notch filter tab', async ({ page }) => {
+  test('can switch to noise tab', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: /notch filter/i }).click()
-    const notchTab = page.getByRole('button', { name: /notch filter/i })
-    await expect(notchTab).toHaveClass(/active/)
-    await expect(page.locator('.tagline')).toContainText('notch filter')
+    await page.getByRole('button', { name: /noise/i }).click()
+    const noiseTab = page.getByRole('button', { name: /noise/i })
+    await expect(noiseTab).toHaveClass(/active/)
   })
 
   test('can switch back to oscillator tab', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: /notch filter/i }).click()
+    await page.getByRole('button', { name: /noise/i }).click()
     await page.getByRole('button', { name: /oscillator/i }).click()
     await expect(page.locator('.tagline')).toContainText('dual oscillator')
   })
@@ -92,89 +92,6 @@ test.describe('Oscillator view', () => {
   })
 })
 
-test.describe('Notch filter view', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await page.getByRole('button', { name: /notch filter/i }).click()
-  })
-
-  test('renders frequency chart', async ({ page }) => {
-    await expect(page.locator('.chart-wrap')).toBeVisible()
-  })
-
-  test('shows source selector buttons', async ({ page }) => {
-    await expect(page.locator('.source-btn').filter({ hasText: 'MICROPHONE' })).toBeVisible()
-    await expect(page.locator('.source-btn').filter({ hasText: 'APP AUDIO' })).toBeVisible()
-  })
-
-  test('microphone source is selected by default', async ({ page }) => {
-    const micBtn = page.locator('.source-btn').filter({ hasText: 'MICROPHONE' })
-    await expect(micBtn).toHaveClass(/active/)
-  })
-
-  test('can switch to app audio source', async ({ page }) => {
-    const appBtn = page.locator('.source-btn').filter({ hasText: 'APP AUDIO' })
-    await appBtn.click()
-    await expect(appBtn).toHaveClass(/active/)
-    // Info box should appear
-    await expect(page.locator('.info-box')).toBeVisible()
-  })
-
-  test('shows one notch band by default', async ({ page }) => {
-    await expect(page.locator('.band-card')).toHaveCount(1)
-    await expect(page.locator('.band-label')).toContainText('NOTCH')
-  })
-
-  test('add band button creates a new band', async ({ page }) => {
-    await page.locator('.add-btn').click()
-    await expect(page.locator('.band-card')).toHaveCount(2)
-  })
-
-  test('can add up to 6 bands', async ({ page }) => {
-    for (let i = 0; i < 5; i++) {
-      await page.locator('.add-btn').click()
-    }
-    await expect(page.locator('.band-card')).toHaveCount(6)
-    await expect(page.locator('.add-btn')).toBeDisabled()
-  })
-
-  test('remove button deletes a band', async ({ page }) => {
-    await page.locator('.add-btn').click()
-    await expect(page.locator('.band-card')).toHaveCount(2)
-    await page.locator('.remove-btn').first().click()
-    await expect(page.locator('.band-card')).toHaveCount(1)
-  })
-
-  test('remove button is disabled when only one band exists', async ({ page }) => {
-    await expect(page.locator('.remove-btn')).toBeDisabled()
-  })
-
-  test('band toggle disables/enables band', async ({ page }) => {
-    const toggle = page.locator('.band-toggle').first()
-    await expect(toggle).toHaveClass(/on/)
-    await toggle.click()
-    await expect(toggle).not.toHaveClass(/on/)
-    await expect(page.locator('.band-card').first()).toHaveClass(/disabled/)
-  })
-
-  test('each band has FREQ and Q knobs', async ({ page }) => {
-    const band = page.locator('.band-card').first()
-    await expect(band.locator('.knob-label', { hasText: 'FREQ' })).toBeVisible()
-    await expect(band.locator('.knob-label').filter({ hasText: /^Q$/ })).toBeVisible()
-  })
-
-  test('band shows frequency and bandwidth readout', async ({ page }) => {
-    await expect(page.locator('.readout-freq').first()).toBeVisible()
-    await expect(page.locator('.readout-bw').first()).toContainText('BW')
-  })
-
-  test('start button text reflects source mode', async ({ page }) => {
-    await expect(page.locator('.power-btn')).toContainText('START MIC')
-    const appBtn = page.locator('.source-btn').filter({ hasText: 'APP AUDIO' })
-    await appBtn.click()
-    await expect(page.locator('.power-btn')).toContainText('START APP AUDIO')
-  })
-})
 
 test.describe('Knob inline edit', () => {
   test.describe('Oscillator knobs', () => {
@@ -271,46 +188,5 @@ test.describe('Knob inline edit', () => {
     })
   })
 
-  test.describe('Notch filter knobs', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto('/')
-      await page.getByRole('button', { name: /notch filter/i }).click()
-    })
 
-    test('typing a frequency updates the band readout', async ({ page }) => {
-      const band = page.locator('.band-card').first()
-      const freqKnob = band.locator('.knob-wrap').first()
-      await freqKnob.locator('.knob-value').click()
-      const input = freqKnob.locator('.knob-input')
-      await input.fill('8000')
-      await input.press('Enter')
-      await expect(freqKnob.locator('.knob-value')).toContainText('8000')
-      await expect(band.locator('.readout-freq')).toContainText('8.00 kHz')
-    })
-
-    test('typing a Q value updates the band', async ({ page }) => {
-      const band = page.locator('.band-card').first()
-      const qKnob = band.locator('.knob-wrap').nth(1)
-      await qKnob.locator('.knob-value').click()
-      const input = qKnob.locator('.knob-input')
-      await input.fill('50')
-      await input.press('Enter')
-      await expect(qKnob.locator('.knob-value')).toContainText('50.0')
-    })
-
-    test('Q value is clamped to range 1–200', async ({ page }) => {
-      const band = page.locator('.band-card').first()
-      const qKnob = band.locator('.knob-wrap').nth(1)
-      // Over max
-      await qKnob.locator('.knob-value').click()
-      await qKnob.locator('.knob-input').fill('999')
-      await qKnob.locator('.knob-input').press('Enter')
-      await expect(qKnob.locator('.knob-value')).toContainText('200.0')
-      // Under min
-      await qKnob.locator('.knob-value').click()
-      await qKnob.locator('.knob-input').fill('0')
-      await qKnob.locator('.knob-input').press('Enter')
-      await expect(qKnob.locator('.knob-value')).toContainText('1.0')
-    })
-  })
 })

@@ -1,7 +1,6 @@
 import { ref } from 'vue'
 import type { AudioEngineReturn } from './useAudioEngine'
 import type { NoiseEngineReturn } from './useNoiseEngine'
-import type { NotchFilterReturn } from './useNotchFilter'
 
 export interface Recording {
   url: string
@@ -15,7 +14,6 @@ export type RecorderReturn = ReturnType<typeof useRecorder>
 export function useRecorder(
   audioEngine: AudioEngineReturn,
   noiseEngine: NoiseEngineReturn,
-  notchFilter: NotchFilterReturn,
 ) {
   const isRecording = ref(false)
   const recordings = ref<Recording[]>([])
@@ -34,7 +32,6 @@ export function useRecorder(
     const engines = [
       { stream: audioEngine.recordingStream.value, running: audioEngine.isRunning.value },
       { stream: noiseEngine.recordingStream.value, running: noiseEngine.isRunning.value },
-      { stream: notchFilter.recordingStream.value, running: notchFilter.isRunning.value },
     ].filter(e => e.running && e.stream !== null) as { stream: MediaStream; running: true }[]
 
     if (engines.length === 0) return
