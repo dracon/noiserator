@@ -66,13 +66,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project overview
 
-Noiserator is a Vue 3 + TypeScript single-page audio tool. It has four pages:
+Noiserator is a Vue 3 + TypeScript single-page audio tool. It has three pages:
 - **Oscillator** — dual-channel stereo oscillator with independent frequency, volume, waveform, and phase controls per channel. Includes a binaural beats mode.
-- **Notch Filter** — microphone or app audio → notch filter chain → headphone output for tinnitus relief.
 - **Noise** — white/pink/brown noise generator with stereo width control, powered by an `AudioWorklet`.
 - **Mixer** — cross-engine control panel with per-engine start/stop + volume knobs, session timer for managed listening, and audio recording with download.
 
-No routing library. Tab state is a single `ref<'oscillator' | 'notch' | 'noise' | 'mixer'>` in `App.vue`.
+No routing library. Tab state is a single `ref<'oscillator' | 'noise' | 'mixer'>` in `App.vue`.
 
 ## Commands
 
@@ -94,25 +93,19 @@ Each page has its own composable that owns an `AudioContext`:
   - Binaural mode: locks L/R frequencies to `baseFrequency` and `baseFrequency + beatFrequency`
   - LocalStorage key: `noiserator-settings`
 
-- `src/composables/useNotchFilter.ts` — notch filter engine
-  - `getUserMedia` or `getDisplayMedia` → `MediaStreamAudioSourceNode` → chain of `BiquadFilterNode(type: 'notch')` → `destination`
-  - Chain is rebuilt (`reconnect()`) when bands are added, removed, or toggled
-  - Live parameter changes (freq, Q) use `setTargetAtTime` on existing nodes — no rebuild needed
-  - LocalStorage key: `noiserator-notch`
-
 - `src/composables/useNoiseEngine.ts` — noise generator engine
   - `AudioWorkletNode` (`/noise-processor.js`) → `GainNode` → `destination`
   - Noise type switched via `workletNode.port.postMessage`; stereo width via `AudioParam`
   - LocalStorage key: `noiserator-noise`
 
 - `src/composables/useSessionTimer.ts` — session timer for managed listening
-  - Takes all three audio engines as input
+  - Takes two audio engines as input (audioEngine, noiseEngine)
   - Provides `setDuration(seconds)` to set session length; auto-stops all engines when timer expires
-  - Exposes `duration`, `remainingTime`, `remainingFormatted`, `status` (`'idle'`, `'running'`, `'paused'`) as reactive refs
+  - Exposes `duration`, `remainingTime`, `remainingFormatted`, `status` (`'idle'`, `'running'`, `'fading'`) as reactive refs
   - Used by MixerView to provide preset durations (30 sec, 1 min, 2 min, 5 min) and custom duration input
 
 - `src/composables/useRecorder.ts` — audio recording and export
-  - Takes all three engine instances (audioEngine, noiseEngine, notchFilter) as input
+  - Takes two engine instances (audioEngine, noiseEngine) as input
   - `start()`: snapshots active engine streams, creates a mixing `AudioContext`, records via `MediaRecorder`
   - `stop()`: finalizes recording, creates blob with `.webm` format
   - Exposes `isRecording`, `recordings` (list of recorded files), `elapsedSeconds`, `start()`, `stop()`, `download()`, `discard()`
@@ -127,21 +120,20 @@ Each composable exposes `analyserNode: Ref<AnalyserNode | null>` — created on 
 - `NoiseTypeKnob.vue` — Same visual as WaveKnob but for white/pink/brown noise selection.
 - `ChannelPanel.vue` — Composes Knob + WaveKnob + LED toggles for one oscillator channel.
 - `Fader.vue` — Vertical linear fader with LED-style segmented track (20 segments, lit from bottom proportionally to value). Click anywhere on track to jump, drag to sweep, scroll wheel for ±0.02 fine steps. Props: `modelValue` (0–1), `color`, `label`, `height` (px, default 160), `segments` (default 20).
-- `FrequencyChart.vue` — Pure SVG frequency response curve. Computes biquad notch magnitude response mathematically (no audio nodes). Log-scale X axis (20 Hz–20 kHz), dB Y axis.
+- `VuMeter.vue` — LED-style RMS level meter. Reads time-domain data from `AnalyserNode`, computes smoothed RMS, displays as vertically stacked segments. Props: `analyserNode`, `height` (px, default 160), `segments` (default 20).
 - `SpectrumAnalyzer.vue` — Canvas-based real-time FFT display. Takes `analyserNode: AnalyserNode | null` prop; runs a `requestAnimationFrame` loop drawing a log-scale filled spectrum. Props: `analyserNode`, `color`, `width`, `height`.
 
 ### Views
 
 - `OscillatorView.vue` — Dual oscillator page. Below the channel panels sits a fader row: a purple `Fader` for L volume and a cyan `Fader` for R volume, with a GROUP toggle in the center that locks both faders to move in sync. The existing VOL knobs in each `ChannelPanel` remain for fine-tuning. `volLinked` (ref) drives the sync; `setLeftVol`/`setRightVol` handlers propagate changes when linked.
-- `NotchView.vue`, `NoiseView.vue` — Individual engine control pages with spectrum analysis.
-- `MixerView.vue` — Master control dashboard: per-engine start/stop buttons + volume knobs, plus session timer with preset durations (30 sec–5 min) and custom duration input. Injects all three engines and the session timer to coordinate playback.
+- `NoiseView.vue` — Noise engine control page with spectrum analysis.
+- `MixerView.vue` — Master control dashboard: per-engine start/stop buttons + volume knobs, master volume fader with L/R VU meters (MASTER OUT strip), session timer with preset durations (30 sec–5 min) and custom duration input. Injects both engines and the session timer to coordinate playback.
 
 ### Styling
 
 Global CSS variables are defined in `src/style.css`. All components use scoped styles. No CSS framework. Colors:
 - Left oscillator channel: `#7c5cbf` (purple)
 - Right oscillator channel: `#00b8d9` (cyan)
-- Notch filter: `#e066ff` (magenta)
 - Noise generator: `#4ecdc4` (teal)
 
 ## Testing
