@@ -8,12 +8,14 @@ import {
     NoiseEngineKey,
     SessionTimerKey,
     RecorderKey,
+    PresetManagerKey,
 } from "../injectionKeys";
 
 const audioEngine = inject(AudioEngineKey)!;
 const noiseEngine = inject(NoiseEngineKey)!;
 const timer = inject(SessionTimerKey)!;
 const recorder = inject(RecorderKey)!;
+const presetManager = inject(PresetManagerKey)!;
 
 const FADE_OPTIONS = [
     { label: "30 sec", value: 30 },
@@ -22,12 +24,54 @@ const FADE_OPTIONS = [
     { label: "5 min", value: 300 },
 ];
 
+const presetName = ref("");
+const showSaveModal = ref(false);
+const selectedPresetId = ref<string | null>(null);
+
 const customMinutes = ref(Math.round(timer.duration.value / 60));
 
 function applyCustomDuration() {
     const mins = Math.max(1, Math.min(480, customMinutes.value));
     customMinutes.value = mins;
     timer.setDuration(mins * 60);
+}
+
+function openSavePresetModal() {
+    presetName.value = "";
+    showSaveModal.value = true;
+}
+
+function savePreset() {
+    if (!presetName.value.trim()) return;
+    presetManager.savePreset(
+        presetName.value,
+        {
+            left: audioEngine.left.value,
+            right: audioEngine.right.value,
+            binaural: audioEngine.binaural.value,
+        },
+        noiseEngine.state.value,
+        masterVol.value,
+    );
+    showSaveModal.value = false;
+}
+
+function loadPreset(id: string) {
+    const preset = presetManager.loadPreset(id);
+    if (!preset) return;
+    audioEngine.left.value = { ...preset.audio.left };
+    audioEngine.right.value = { ...preset.audio.right };
+    audioEngine.binaural.value = { ...preset.audio.binaural };
+
+    // Manually sync frequencies if binaural is enabled, since watchers may not fire
+    if (audioEngine.binaural.value.enabled) {
+        audioEngine.left.value.frequency = audioEngine.binaural.value.baseFrequency;
+        audioEngine.right.value.frequency = audioEngine.binaural.value.baseFrequency + audioEngine.binaural.value.beatFrequency;
+    }
+
+    noiseEngine.state.value = { ...preset.noise };
+    masterVol.value = preset.masterVolume;
+    selectedPresetId.value = id;
 }
 
 const activePreset = computed(() =>
@@ -338,6 +382,53 @@ watch(
                         No recordings yet. Start an engine, then press RECORD.
                     </div>
                 </div>
+
+                <!-- Presets panel -->
+                <div class="presets-panel">
+                    <div class="panel-header preset-header">PRESETS</div>
+
+                    <button
+                        class="save-preset-btn"
+                        @click="openSavePresetModal"
+                    >
+                        + SAVE PRESET
+                    </button>
+
+                    <div
+                        v-if="presetManager.presets.value.length > 0"
+                        class="presets-list"
+                    >
+                        <div
+                            v-for="preset in presetManager.presets.value"
+                            :key="preset.id"
+                            class="preset-item"
+                            :class="{ active: selectedPresetId === preset.id }"
+                        >
+                            <button
+                                class="preset-load"
+                                @click="loadPreset(preset.id)"
+                            >
+                                {{ preset.name }}
+                            </button>
+                            <span class="preset-date">
+                                {{ new Date(preset.createdAt).toLocaleDateString() }}
+                            </span>
+                            <button
+                                class="preset-delete"
+                                @click="presetManager.deletePreset(preset.id)"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    <div
+                        v-else
+                        class="presets-hint"
+                    >
+                        No presets yet. Save your current settings to create one.
+                    </div>
+                </div>
             </div>
             <!-- end .panels-col -->
 
@@ -371,6 +462,35 @@ watch(
             </div>
         </div>
         <!-- end .mixer-layout -->
+
+        <!-- Save Preset Modal -->
+        <div v-if="showSaveModal" class="modal-overlay" @click.self="showSaveModal = false">
+            <div class="modal">
+                <div class="modal-header">SAVE PRESET</div>
+                <input
+                    v-model="presetName"
+                    type="text"
+                    placeholder="Preset name"
+                    class="modal-input"
+                    @keyup.enter="savePreset"
+                />
+                <div class="modal-buttons">
+                    <button
+                        class="modal-btn cancel"
+                        @click="showSaveModal = false"
+                    >
+                        CANCEL
+                    </button>
+                    <button
+                        class="modal-btn save"
+                        :disabled="!presetName.trim()"
+                        @click="savePreset"
+                    >
+                        SAVE
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -869,5 +989,200 @@ watch(
     color: var(--text-dim);
     letter-spacing: 0.06em;
     opacity: 0.6;
+}
+
+/* Presets panel */
+.presets-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid color-mix(in srgb, #9b7de0 20%, var(--border));
+    border-radius: 14px;
+    padding: 20px 28px 24px;
+    width: 560px;
+}
+
+.preset-header {
+    color: #9b7de0;
+}
+
+.save-preset-btn {
+    width: 100%;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #9b7de0;
+    background: color-mix(in srgb, #9b7de0 12%, var(--surface));
+    color: #9b7de0;
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.save-preset-btn:hover {
+    filter: brightness(1.2);
+}
+
+.presets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.preset-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.preset-item.active {
+    border-color: #9b7de0;
+    background: color-mix(in srgb, #9b7de0 8%, var(--surface));
+}
+
+.preset-load {
+    flex: 1;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.preset-load:hover {
+    color: #9b7de0;
+}
+
+.preset-date {
+    color: var(--text-dim);
+    font-size: 9px;
+    flex-shrink: 0;
+}
+
+.preset-delete {
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preset-delete:hover {
+    color: #ff4455;
+    border-color: #ff4455;
+}
+
+.presets-hint {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    opacity: 0.6;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-header {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+}
+
+.modal-input {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.modal-input:focus {
+    outline: none;
+    border-color: #9b7de0;
+    box-shadow: 0 0 8px color-mix(in srgb, #9b7de0 25%, transparent);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.modal-btn:hover:not(:disabled) {
+    color: var(--text);
+}
+
+.modal-btn.save:not(:disabled) {
+    border-color: #9b7de0;
+    color: #9b7de0;
+    background: color-mix(in srgb, #9b7de0 12%, var(--surface));
+}
+
+.modal-btn.save:not(:disabled):hover {
+    filter: brightness(1.2);
+}
+
+.modal-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
 }
 </style>

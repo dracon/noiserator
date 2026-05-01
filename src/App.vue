@@ -7,7 +7,8 @@ import { useAudioEngine } from './composables/useAudioEngine'
 import { useNoiseEngine }  from './composables/useNoiseEngine'
 import { useSessionTimer } from './composables/useSessionTimer'
 import { useRecorder }     from './composables/useRecorder'
-import { AudioEngineKey, NoiseEngineKey, SessionTimerKey, RecorderKey } from './injectionKeys'
+import { usePresetManager } from './composables/usePresetManager'
+import { AudioEngineKey, NoiseEngineKey, SessionTimerKey, RecorderKey, PresetManagerKey } from './injectionKeys'
 
 type Tab = 'oscillator' | 'noise' | 'mixer'
 const activeTab = ref<Tab>('oscillator')
@@ -16,11 +17,13 @@ const audioEngine = useAudioEngine()
 const noiseEngine = useNoiseEngine()
 const sessionTimer = useSessionTimer(audioEngine, noiseEngine)
 const recorder = useRecorder(audioEngine, noiseEngine)
+const presetManager = usePresetManager()
 
 provide(AudioEngineKey, audioEngine)
 provide(NoiseEngineKey, noiseEngine)
 provide(SessionTimerKey, sessionTimer)
 provide(RecorderKey, recorder)
+provide(PresetManagerKey, presetManager)
 </script>
 
 <template>
