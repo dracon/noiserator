@@ -75,6 +75,8 @@ No routing library. Tab state is a single `ref<'oscillator' | 'noise' | 'mixer'>
 
 ## Commands
 
+Always document new npm scripts here for team discoverability.
+
 ```bash
 npm run dev       # start dev server at http://localhost:5173
 npm run build     # type-check + vite build → dist/
@@ -212,10 +214,18 @@ npm run test:e2e -- --grep "pattern"  # run matching tests only
 - Check that `analyserNode` prop is passed (not null) to component
 - Audio worklet errors are silent; check DevTools console for clues
 
+## GitNexus Workflow
+
+After making code changes:
+1. Run `npx gitnexus analyze` to update the knowledge graph
+2. Commit any stat changes in `AGENTS.md` (e.g., "docs: sync GitNexus index stats")
+3. Use impact analysis before editing symbols to check blast radius
+4. Run `gitnexus_detect_changes()` before committing to verify scope
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **noiserator** (587 symbols, 718 relationships, 5 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **noiserator** (583 symbols, 720 relationships, 5 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
