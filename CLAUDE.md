@@ -76,12 +76,45 @@ No routing library. Tab state is a single `ref<'oscillator' | 'noise' | 'mixer'>
 ## Commands
 
 ```bash
-npm run dev      # start dev server at http://localhost:5173
-npm run build    # type-check + vite build → dist/
-npm run preview  # serve dist/ locally
+npm run dev       # start dev server at http://localhost:5173
+npm run build     # type-check + vite build → dist/
+npm run preview   # serve dist/ locally
+npm run test:e2e  # run Playwright e2e tests
 ```
 
 ## Architecture
+
+### Directory Structure
+
+```
+src/
+├── App.vue                    # Root component, manages tab state
+├── main.ts                    # Entry point
+├── style.css                  # Global CSS variables (colors, fonts)
+├── env.d.ts                   # TypeScript env declarations
+├── injectionKeys.ts           # Vue injection keys for composables
+├── components/
+│   ├── Knob.vue              # Rotary knob control
+│   ├── WaveKnob.vue          # Wave-selection knob (4 waveforms)
+│   ├── NoiseTypeKnob.vue     # Noise-type selection knob
+│   ├── ChannelPanel.vue      # L/R oscillator channel UI
+│   ├── Fader.vue             # Vertical linear fader
+│   ├── VuMeter.vue           # LED-style level meter
+│   └── SpectrumAnalyzer.vue  # Real-time FFT spectrum display
+├── views/
+│   ├── OscillatorView.vue    # Dual oscillator + binaural control
+│   ├── NoiseView.vue         # Noise generator control
+│   └── MixerView.vue         # Master mixer + timer + recorder
+└── composables/
+    ├── useAudioEngine.ts     # Oscillator audio engine
+    ├── useNoiseEngine.ts     # Noise generator audio engine
+    ├── useSessionTimer.ts    # Session timer for managed listening
+    ├── useRecorder.ts        # Recording and export
+    └── usePresetManager.ts   # Preset save/load management
+
+public/
+└── noise-processor.js        # AudioWorklet for noise generation
+```
 
 ### Audio engines
 
@@ -147,7 +180,7 @@ npm run test:e2e -- --grep "pattern"  # run matching tests only
 
 - Tests live in `e2e/`. Each spec navigates to `http://localhost:5173` in a real headless Chromium.
 - Clear localStorage before tests that depend on default state: `await page.evaluate(() => localStorage.clear())` then `await page.reload()`.
-- Stop the dev server: `pkill -f vite`
+- Dev server runs in `npm run dev`; stop it in the terminal with Ctrl+C.
 
 ## Conventions
 
@@ -155,6 +188,29 @@ npm run test:e2e -- --grep "pattern"  # run matching tests only
 - State that drives audio is stored in `ref<ChannelState>` and synced to audio nodes via `watch`.
 - `localStorage` persistence is handled inside each composable — components and views are unaware of it.
 - No external audio or UI libraries — Web Audio API only.
+- `analyserNode` is `null` when an engine is stopped; created on start as a tap from the output node for visualization (spectrum, vu meter).
+- Composables are injected into views via `provide()`/`inject()` using keys defined in `injectionKeys.ts`.
+
+## Troubleshooting
+
+**Dev server won't start**
+- Ensure port 5173 is available: `lsof -i :5173` or `npx kill-port 5173`
+- Clear `node_modules` and reinstall: `rm -rf node_modules && npm install && npm run dev`
+
+**Audio not playing**
+- Check browser console for `AudioContext` errors (may be blocked by browser autoplay policy)
+- Verify user interaction (click) has happened; Web Audio requires user gesture to start
+- Test in a fresh tab or incognito window to avoid cached audio context issues
+
+**localStorage conflicts in tests**
+- Always clear localStorage before tests: `await page.evaluate(() => localStorage.clear())`
+- Reload the page after clearing: `await page.reload()`
+- Each engine uses distinct keys (`noiserator-settings`, `noiserator-noise`) — clear selectively if needed
+
+**Spectrum analyzer or VU meter not updating**
+- Verify the engine is running (`isPlaying` ref is true)
+- Check that `analyserNode` prop is passed (not null) to component
+- Audio worklet errors are silent; check DevTools console for clues
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
