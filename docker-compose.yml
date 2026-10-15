@@ -1,0 +1,15 @@
+services:
+  noiserator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: noiserator:local
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
